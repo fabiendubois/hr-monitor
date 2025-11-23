@@ -1,53 +1,158 @@
 # HR Monitor Pro
 
-Une application web moderne pour visualiser votre fréquence cardiaque en temps réel à l'aide de l'API Web Bluetooth. Connectez votre ceinture cardio ou votre montre compatible et suivez vos performances directement dans votre navigateur.
+Application web pour le suivi en temps réel de vos entraînements cyclistes avec ceinture cardio et home trainer connectés.
 
-## 🚀 Fonctionnalités
+## ✨ Fonctionnalités
 
-- **Connexion Bluetooth Low Energy (BLE)** : Connectez facilement vos appareils de fréquence cardiaque compatibles (ceintures Polar, Garmin, montres connectées, etc.).
-- **Visualisation en Temps Réel** : Affichage instantané de la fréquence cardiaque (BPM).
-- **Zones de Fréquence Cardiaque** : Indication automatique de la zone d'effort (Zone 1 à Zone 5) avec code couleur dynamique.
-- **Statistiques de Session** : Suivi des valeurs Min, Max et Moyenne de la session en cours.
-- **Graphique Dynamique** : Visualisation de l'évolution de la fréquence cardiaque au fil du temps (via Chart.js).
-- **Interface Responsive** : Design moderne et adapté aux mobiles et ordinateurs.
+### 📊 Métriques en Temps Réel
+L'application affiche 4 blocs de métriques indépendants, chacun avec :
+- **Valeur instantanée** en grand format
+- **Statistiques MIN / MAX / MOY**
+- **Graphique historique** (15 minutes)
+
+#### Métriques disponibles :
+- ✅ **Fréquence Cardiaque** (BPM) avec zones d'entraînement
+- ✅ **Puissance** (Watts)
+- ✅ **Cadence** (RPM)
+- ✅ **Vitesse** (km/h)
+
+### ⏱️ Enregistrement d'Activité
+- **Chronomètre** avec Start/Pause/Stop
+- **Enregistrement automatique** des données (HR, Power, Cadence, Speed) chaque seconde
+- **Export** vers Strava ou téléchargement du fichier TCX
+
+### 🚴 Intégration Strava
+- **Authentification OAuth** sécurisée
+- **Upload automatique** des activités au format TCX
+- **Données complètes** : fréquence cardiaque, puissance, cadence, timestamp
+- Configuration via le modal de paramètres ⚙️
+
+### 🎮 Mode DEMO
+- **Simulation de données** sans matériel
+- Variation réaliste de toutes les métriques :
+  - HR : 120-180 BPM
+  - Power : 150-300 Watts
+  - Cadence : 75-95 RPM
+  - Speed : 20-40 km/h
+- Parfait pour tester l'application
+
+### 📈 Graphiques Interactifs
+- **4 graphiques en temps réel** (un par métrique)
+- **Historique de 15 minutes** (900 points)
+- **Mise à jour chaque seconde**
+- Axe X avec timestamps précis (HH:MM:SS)
+
+### 🔗 Connexions Bluetooth
+- **Ceinture cardio** : Connection via Heart Rate Service (BLE)
+- **Home Trainer** : Support FTMS (Fitness Machine Service) et Cycling Power Service
+- **Indicateurs visuels** de connexion sur chaque bouton
+- **Connexions indépendantes** pour chaque appareil
 
 ## 📋 Prérequis
 
-Pour utiliser cette application, vous avez besoin de :
+- **Navigateur compatible Web Bluetooth** :
+  - ✅ Google Chrome
+  - ✅ Microsoft Edge
+  - ✅ Opera
+- **Protocole HTTPS** ou `localhost`
+- **Ceinture cardio** compatible Bluetooth Low Energy (optionnel)
+- **Home Trainer** compatible FTMS ou Cycling Power (optionnel)
 
-1.  **Un navigateur compatible Web Bluetooth** :
-    - Google Chrome (Desktop & Android)
-    - Microsoft Edge
-    - Opera
-    - *Note : Safari et Firefox ne supportent pas encore nativement cette fonctionnalité.*
-2.  **Un appareil de mesure de fréquence cardiaque** supportant le profil Bluetooth standard "Heart Rate Service" (UUID `0x180d`).
-3.  **Une connexion sécurisée (HTTPS)** : L'API Web Bluetooth ne fonctionne que sur des pages servies en HTTPS (ou sur `localhost` pour le développement).
+## 🚀 Installation & Utilisation
 
-## 🛠️ Installation et Utilisation
+### Installation
+```bash
+# Cloner le projet
+git clone [votre-repo]
 
-### En local (Développement)
+# Ouvrir avec Live Server ou servir via HTTPS
+# Exemple avec Python :
+python -m http.server 8000
 
-1.  Clonez ce dépôt ou téléchargez les fichiers.
-2.  Ouvrez le dossier du projet.
-3.  Lancez un serveur local (par exemple avec l'extension "Live Server" de VS Code, ou via Python `python -m http.server`).
-    - *Important : Ouvrir simplement le fichier `index.html` ne fonctionnera pas pour le Bluetooth.*
-4.  Accédez à l'URL locale (ex: `http://localhost:5500`).
+# Ou avec Node.js :
+npx http-server
+```
 
 ### Utilisation
 
-1.  Activez le Bluetooth sur votre ordinateur ou téléphone.
-2.  Mettez votre ceinture cardio ou activez le mode diffusion de votre montre.
-3.  Cliquez sur le bouton **"⚡ CONNECTER"**.
-4.  Sélectionnez votre appareil dans la liste qui s'affiche.
-5.  Les données commenceront à s'afficher automatiquement.
+1. **Connexion des appareils** :
+   - Cliquez sur **"❤️ HR"** pour connecter votre ceinture cardio
+   - Cliquez sur **"🚴 TRAINER"** pour connecter votre home trainer
+   - Les points de statut deviennent verts une fois connectés
 
-## 💻 Technologies Utilisées
+2. **Mode DEMO** (sans matériel) :
+   - Cliquez sur **"🎮 DEMO"** pour activer la simulation
+   - Toutes les métriques varient automatiquement
 
-- **HTML5 / CSS3** : Structure et design (Police Inter, Flexbox/Grid).
-- **JavaScript (Vanilla)** : Logique de l'application et gestion du Bluetooth.
-- **Web Bluetooth API** : Communication avec les périphériques BLE.
-- **Chart.js** : Librairie pour le graphique en temps réel.
+3. **Enregistrer une session** :
+   - Cliquez sur **"▶ DÉMARRER"** pour lancer l'enregistrement
+   - **"⏸ PAUSE"** pour mettre en pause
+   - **"⏹ STOP & SAVE"** pour arrêter et sauvegarder
 
-## ⚠️ Avertissement
+4. **Upload vers Strava** :
+   - Cliquez sur **⚙️** pour configurer vos clés API Strava
+   - Obtenez vos clés sur [strava.com/settings/api](https://www.strava.com/settings/api)
+   - Connectez-vous à Strava via OAuth
+   - Choisissez "Upload Strava" ou "Télécharger TCX" après l'arrêt
 
-Cette application est fournie à titre informatif et ne constitue pas un dispositif médical. Consultez toujours un professionnel de santé avant d'entreprendre un programme d'exercice physique.
+## 🛠️ Technologies Utilisées
+
+- **HTML5 / CSS3 / Vanilla JavaScript**
+- **Web Bluetooth API** pour la connexion aux capteurs
+- **Chart.js** pour les graphiques temps réel
+- **Strava API v3** pour l'intégration Strava
+- **TCX Format** pour l'export des activités
+
+## 📱 Services Bluetooth Supportés
+
+### Heart Rate Service (0x180D)
+- Fréquence cardiaque instantanée
+- Format standard BLE
+
+### FTMS - Fitness Machine Service (0x1826)
+- Indoor Bike Data (0x2AD2)
+- Puissance, Cadence, Vitesse
+- Support des home trainers modernes
+
+### Cycling Power Service (0x1818)
+- Mesure de puissance précise
+- Calcul de cadence via révolutions de manivelle
+
+## 🎨 Interface
+
+- **Design moderne** avec dégradés et glassmorphism
+- **Dark mode** élégant
+- **Animations fluides** et responsive
+- **4 blocs métriques** indépendants avec graphiques intégrés
+- **Zones de fréquence cardiaque** (Zone 1-5)
+
+## 📝 Notes Importantes
+
+### Configuration Strava
+Comme l'application est 100% front-end :
+1. Créez une application sur [strava.com/settings/api](https://www.strava.com/settings/api)
+2. Configurez l'**Authorization Callback Domain** :
+   - En dev: `localhost` ou votre domaine
+3. Copiez le **Client ID** et **Client Secret** dans les paramètres ⚙️
+
+### Format TCX
+Les fichiers TCX générés incluent :
+- Timestamp pour chaque point de données
+- Fréquence cardiaque
+- Puissance (extension TPX)
+- Cadence
+- Métadonnées d'activité (Indoor Trainer)
+
+## 🔒 Sécurité
+
+- Les clés API Strava sont stockées localement dans `localStorage`
+- Les tokens d'accès sont rafraîchis automatiquement
+- Aucune donnée n'est envoyée à un serveur tiers (sauf Strava API)
+
+## 📄 Licence
+
+MIT
+
+---
+
+**Bon entraînement ! 🚴💪**

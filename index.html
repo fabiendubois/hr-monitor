@@ -17,51 +17,192 @@
 <body>
     <div class="container">
         <header>
-            <h1>HR MONITOR <span class="pro-badge">PRO</span></h1>
-            <button id="connectBtn" class="btn-connect">
-                <span class="icon">⚡</span> CONNECTER
-            </button>
+            <div class="header-content">
+                <h1>HR MONITOR <span class="pro-badge">PRO</span></h1>
+                <div class="header-controls">
+                    <button id="connectBtn" class="btn-connect">
+                        <span class="status-dot" id="hrStatusDot"></span>
+                        <span class="icon">❤️</span> HR
+                    </button>
+                    <button id="connectTrainerBtn" class="btn-connect btn-trainer">
+                        <span class="status-dot" id="trainerStatusDot"></span>
+                        <span class="icon">🚴</span> TRAINER
+                    </button>
+                    <button id="demoBtn" class="btn-connect btn-demo">
+                        <span class="icon">🎮</span> DEMO
+                    </button>
+                    <button id="settingsBtn" class="btn-icon" title="Paramètres Strava">⚙️</button>
+                </div>
+            </div>
         </header>
 
         <main>
-            <div class="status-bar">
-                <span id="connectionStatus" class="status disconnected">Déconnecté</span>
-                <span id="batteryLevel" class="battery hidden">--% 🔋</span>
-            </div>
 
             <div class="dashboard">
-                <!-- Main HR Display -->
-                <div class="card hr-card">
-                    <h2>FRÉQUENCE CARDIAQUE</h2>
-                    <div class="hr-display">
-                        <span id="heartRate" class="value">--</span>
-                        <span class="unit">BPM</span>
+                <!-- Activity Controls & Timer -->
+                <div class="activity-panel">
+                    <div id="timerDisplay" class="timer">00:00:00</div>
+                    <div class="controls">
+                        <button id="startBtn" class="btn-control btn-start">▶ DÉMARRER</button>
+                        <button id="pauseBtn" class="btn-control btn-pause hidden">⏸ PAUSE</button>
+                        <button id="stopBtn" class="btn-control btn-stop hidden">⏹ STOP & SAVE</button>
+                    </div>
+                </div>
+
+                <!-- HR Block -->
+                <div class="card metric-block">
+                    <h2 class="metric-title">FRÉQUENCE CARDIAQUE</h2>
+                    <div class="metric-current">
+                        <span id="heartRate" class="value-large">--</span>
+                        <span class="unit-large">BPM</span>
                     </div>
                     <div class="zone-indicator" id="zoneIndicator">ZONE --</div>
+                    <div class="metric-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">MIN</span>
+                            <span id="minHr" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MAX</span>
+                            <span id="maxHr" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MOY</span>
+                            <span id="avgHr" class="stat-value">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-chart">
+                        <canvas id="hrChart"></canvas>
+                    </div>
                 </div>
 
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="card stat-card">
-                        <h3>MIN</h3>
-                        <span id="minHr" class="stat-value">--</span>
+                <!-- Power Block -->
+                <div class="card metric-block">
+                    <h2 class="metric-title">PUISSANCE</h2>
+                    <div class="metric-current">
+                        <span id="power" class="value-large">--</span>
+                        <span class="unit-large">WATTS</span>
                     </div>
-                    <div class="card stat-card">
-                        <h3>MAX</h3>
-                        <span id="maxHr" class="stat-value">--</span>
+                    <div class="metric-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">MIN</span>
+                            <span id="minPower" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MAX</span>
+                            <span id="maxPower" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MOY</span>
+                            <span id="avgPower" class="stat-value">--</span>
+                        </div>
                     </div>
-                    <div class="card stat-card">
-                        <h3>MOY</h3>
-                        <span id="avgHr" class="stat-value">--</span>
+                    <div class="metric-chart">
+                        <canvas id="powerChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Chart -->
-                <div class="card chart-card">
-                    <canvas id="hrChart"></canvas>
+                <!-- Cadence Block -->
+                <div class="card metric-block">
+                    <h2 class="metric-title">CADENCE</h2>
+                    <div class="metric-current">
+                        <span id="cadence" class="value-large">--</span>
+                        <span class="unit-large">RPM</span>
+                    </div>
+                    <div class="metric-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">MIN</span>
+                            <span id="minCadence" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MAX</span>
+                            <span id="maxCadence" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MOY</span>
+                            <span id="avgCadence" class="stat-value">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-chart">
+                        <canvas id="cadenceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Speed Block -->
+                <div class="card metric-block">
+                    <h2 class="metric-title">VITESSE</h2>
+                    <div class="metric-current">
+                        <span id="speed" class="value-large">--</span>
+                        <span class="unit-large">KM/H</span>
+                    </div>
+                    <div class="metric-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">MIN</span>
+                            <span id="minSpeed" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MAX</span>
+                            <span id="maxSpeed" class="stat-value">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MOY</span>
+                            <span id="avgSpeed" class="stat-value">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-chart">
+                        <canvas id="speedChart"></canvas>
+                    </div>
                 </div>
             </div>
         </main>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <span id="closeSettings" class="close">&times;</span>
+                <h2>Paramètres Strava</h2>
+                <p class="info-text">Pour uploader sur Strava, vous devez fournir vos propres clés API (disponibles sur
+                    <a href="https://www.strava.com/settings/api" target="_blank">strava.com/settings/api</a>).
+                </p>
+
+                <div class="form-group">
+                    <label for="clientId">Client ID</label>
+                    <input type="text" id="clientId" placeholder="ex: 12345">
+                </div>
+
+                <div class="form-group">
+                    <label for="clientSecret">Client Secret</label>
+                    <input type="password" id="clientSecret" placeholder="ex: a1b2c3d4...">
+                </div>
+
+                <div class="form-actions">
+                    <button id="saveSettingsBtn" class="btn-primary">Sauvegarder</button>
+                    <button id="stravaAuthBtn" class="btn-strava hidden">Connecter Strava</button>
+                </div>
+                <p id="authStatus" class="status-text"></p>
+            </div>
+        </div>
+
+        <!-- Save Activity Modal -->
+        <div id="saveModal" class="modal hidden">
+            <div class="modal-content">
+                <h2>Sauvegarder l'activité</h2>
+                <p class="info-text">Choisissez comment sauvegarder votre session :</p>
+
+                <div class="save-options">
+                    <button id="uploadStravaBtn" class="btn-save-option">
+                        <span class="save-icon">🚴</span>
+                        <span class="save-label">Upload Strava</span>
+                    </button>
+                    <button id="downloadTcxBtn" class="btn-save-option">
+                        <span class="save-icon">📥</span>
+                        <span class="save-label">Télécharger TCX</span>
+                    </button>
+                </div>
+
+                <button id="cancelSaveBtn" class="btn-cancel">Annuler</button>
+            </div>
+        </div>
 
         <footer>
             <p>⚠️ Compatible uniquement avec <strong>Google Chrome</strong>, Edge et Opera.</p>
