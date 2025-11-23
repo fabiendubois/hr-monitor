@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Monitor Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>HR MONITOR <span class="pro-badge">PRO</span></h1>
+            <button id="connectBtn" class="btn-connect">
+                <span class="icon">⚡</span> CONNECTER
+            </button>
+        </header>
+
+        <main>
+            <div class="status-bar">
+                <span id="connectionStatus" class="status disconnected">Déconnecté</span>
+                <span id="batteryLevel" class="battery hidden">--% 🔋</span>
+            </div>
+
+            <div class="dashboard">
+                <!-- Main HR Display -->
+                <div class="card hr-card">
+                    <h2>FRÉQUENCE CARDIAQUE</h2>
+                    <div class="hr-display">
+                        <span id="heartRate" class="value">--</span>
+                        <span class="unit">BPM</span>
+                    </div>
+                    <div class="zone-indicator" id="zoneIndicator">ZONE --</div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <h3>MIN</h3>
+                        <span id="minHr" class="stat-value">--</span>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>MAX</h3>
+                        <span id="maxHr" class="stat-value">--</span>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>MOY</h3>
+                        <span id="avgHr" class="stat-value">--</span>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="card chart-card">
+                    <canvas id="hrChart"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>⚠️ Compatible uniquement avec <strong>Google Chrome</strong>, Edge et Opera.</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
