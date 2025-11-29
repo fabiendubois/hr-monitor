@@ -40,9 +40,45 @@ const authStatus = document.getElementById('authStatus');
 
 // Save Modal Elements
 const saveModal = document.getElementById('saveModal');
+const closeSaveModal = document.getElementById('closeSaveModal');
 const uploadStravaBtn = document.getElementById('uploadStravaBtn');
 const downloadTcxBtn = document.getElementById('downloadTcxBtn');
 const cancelSaveBtn = document.getElementById('cancelSaveBtn');
+
+// Trainer Control Elements
+const trainerControlPanel = document.getElementById('trainerControlPanel');
+const targetPowerDisplay = document.getElementById('targetPowerDisplay');
+const decreasePowerBtn = document.getElementById('decreasePowerBtn');
+const increasePowerBtn = document.getElementById('increasePowerBtn');
+const setPowerBtn = document.getElementById('setPowerBtn');
+
+// Workout Elements
+const workoutsBtn = document.getElementById('workoutsBtn');
+const workoutModal = document.getElementById('workoutModal');
+const closeWorkoutModal = document.getElementById('closeWorkoutModal');
+const workoutList = document.getElementById('workoutList');
+const workoutHud = document.getElementById('workoutHud');
+const workoutNameDisplay = document.getElementById('workoutName');
+const workoutTotalTimeDisplay = document.getElementById('workoutTotalTime');
+const workoutProgressBar = document.getElementById('workoutProgressBar');
+const intervalNameDisplay = document.getElementById('intervalName');
+const intervalTimeRemainingDisplay = document.getElementById('intervalTimeRemaining');
+const nextIntervalNameDisplay = document.getElementById('nextIntervalName');
+const powerTargetContainer = document.getElementById('powerTargetContainer');
+const powerTargetValue = document.getElementById('powerTargetValue');
+const powerZoneIndicator = document.getElementById('powerZoneIndicator');
+const userFtpInput = document.getElementById('userFtp');
+
+// Debug Elements
+const debugBtn = document.getElementById('debugBtn');
+const debugPanel = document.getElementById('debugPanel');
+const debugButtons = document.querySelectorAll('.btn-debug');
+
+// Summary Elements
+const summaryDuration = document.getElementById('summaryDuration');
+const summaryAvgHr = document.getElementById('summaryAvgHr');
+const summaryAvgPower = document.getElementById('summaryAvgPower');
+const summaryAvgSpeed = document.getElementById('summaryAvgSpeed');
 
 // State
 let hrDevice = null;
@@ -53,6 +89,7 @@ let trainerDevice = null;
 let trainerServer = null;
 let powerCharacteristic = null;
 let cadenceCharacteristic = null;
+let trainerControlCharacteristic = null;
 
 let hrHistory = [];
 let minHr = Infinity;
@@ -85,6 +122,29 @@ let demoHR = 140;
 let demoPower = 200;
 let demoCadence = 85;
 let demoSpeed = 25;
+
+// Debug State
+let timeMultiplier = 1;
+
+// Trainer Control State
+let targetPower = 150;
+let isErgMode = false;
+
+// Workout State
+let userFtp = parseInt(localStorage.getItem('user_ftp')) || 220;
+let currentWorkout = null;
+let currentIntervalIndex = 0;
+let intervalTimeRemaining = 0;
+let workoutTotalDuration = 0;
+let workoutElapsedTime = 0;
+let isWorkoutActive = false;
+
+// Bluetooth Constants
+const FTMS_SERVICE_UUID = '00001826-0000-1000-8000-00805f9b34fb';
+const INDOOR_BIKE_DATA_UUID = '00002ad2-0000-1000-8000-00805f9b34fb';
+const FITNESS_MACHINE_CONTROL_POINT_UUID = '00002ad9-0000-1000-8000-00805f9b34fb';
+const CYCLING_POWER_SERVICE_UUID = '00001818-0000-1000-8000-00805f9b34fb';
+const CYCLING_POWER_MEASUREMENT_UUID = '00002a63-0000-1000-8000-00805f9b34fb';
 
 // Activity State
 let isRecording = false;
@@ -171,6 +231,14 @@ const powerChart = new Chart(powerCtx, {
             fill: true,
             pointRadius: 2,
             pointBackgroundColor: '#ffaa00'
+        }, {
+            label: 'Cible (Watts)',
+            data: [],
+            borderColor: 'rgba(255, 255, 255, 0.5)',
+            borderWidth: 1,
+            borderDash: [5, 5],
+            pointRadius: 0,
+            fill: false
         }]
     },
     options: {
@@ -216,13 +284,13 @@ const cadenceChart = new Chart(cadenceCtx, {
         datasets: [{
             label: 'Cadence (RPM)',
             data: [],
-            borderColor: '#00ff9d',
-            backgroundColor: 'rgba(0, 255, 157, 0.1)',
+            borderColor: '#ffffff',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderWidth: 2,
             tension: 0.4,
             fill: true,
             pointRadius: 2,
-            pointBackgroundColor: '#00ff9d'
+            pointBackgroundColor: '#ffffff'
         }]
     },
     options: {
@@ -268,13 +336,13 @@ const speedChart = new Chart(speedCtx, {
         datasets: [{
             label: 'Vitesse (km/h)',
             data: [],
-            borderColor: '#ff2e63',
-            backgroundColor: 'rgba(255, 46, 99, 0.1)',
+            borderColor: '#ffffff',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderWidth: 2,
             tension: 0.4,
             fill: true,
             pointRadius: 2,
-            pointBackgroundColor: '#ff2e63'
+            pointBackgroundColor: '#ffffff'
         }]
     },
     options: {
@@ -312,15 +380,9 @@ const speedChart = new Chart(speedCtx, {
     }
 });
 
-// Bluetooth Constants
+// Bluetooth Constants (Moved to top)
 const HR_SERVICE_UUID = 0x180d;
 const HR_CHARACTERISTIC_UUID = 0x2a37;
-
-const FTMS_SERVICE_UUID = 0x1826;
-const INDOOR_BIKE_DATA_UUID = 0x2ad2;
-
-const CYCLING_POWER_SERVICE_UUID = 0x1818;
-const CYCLING_POWER_MEASUREMENT_UUID = 0x2a63;
 
 // Event Listeners
 connectBtn.addEventListener('click', toggleHRConnection);
@@ -341,11 +403,30 @@ stravaAuthBtn.addEventListener('click', initiateStravaAuth);
 // Save Modal Listeners
 uploadStravaBtn.addEventListener('click', handleUploadStrava);
 downloadTcxBtn.addEventListener('click', handleDownloadTCX);
-cancelSaveBtn.addEventListener('click', () => saveModal.classList.add('hidden'));
+cancelSaveBtn.addEventListener('click', () => {
+    saveModal.classList.add('hidden');
+    resetStats();
+});
+
+closeSaveModal.addEventListener('click', () => {
+    saveModal.classList.add('hidden');
+    resetStats();
+});
+
+// Trainer Control Listeners
+decreasePowerBtn.addEventListener('click', () => adjustTargetPower(-10));
+increasePowerBtn.addEventListener('click', () => adjustTargetPower(10));
+setPowerBtn.addEventListener('change', toggleErgMode);
+
+// Workout Listeners
+workoutsBtn.addEventListener('click', openWorkoutModal);
+closeWorkoutModal.addEventListener('click', () => workoutModal.classList.add('hidden'));
+userFtpInput.addEventListener('change', saveUserFtp);
 
 // Initialize Settings UI
 if (stravaClientId) clientIdInput.value = stravaClientId;
 if (stravaClientSecret) clientSecretInput.value = stravaClientSecret;
+userFtpInput.value = userFtp;
 checkAuthStatus();
 
 // Check for Strava Redirect Code
@@ -354,6 +435,20 @@ const stravaCode = urlParams.get('code');
 if (stravaCode) {
     handleStravaCallback(stravaCode);
 }
+
+// Debug Listeners
+debugBtn.addEventListener('click', () => debugPanel.classList.toggle('hidden'));
+debugButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        // Update active state
+        debugButtons.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+
+        // Set multiplier
+        timeMultiplier = parseInt(e.target.dataset.speed);
+        console.log('Time Warp:', timeMultiplier + 'x');
+    });
+});
 
 // --- DEMO MODE FUNCTIONS ---
 
@@ -376,6 +471,9 @@ function startDemoMode() {
     demoCadence = 85 + Math.random() * 10;
     demoSpeed = 25 + Math.random() * 5;
 
+    // Show Control Panel in Demo Mode
+    trainerControlPanel.style.display = 'block';
+
     // Simulate data every second
     demoInterval = setInterval(() => {
         // Vary HR (120-180 BPM)
@@ -383,8 +481,13 @@ function startDemoMode() {
         demoHR = Math.max(120, Math.min(180, demoHR));
 
         // Vary Power (150-300 Watts)
-        demoPower += (Math.random() - 0.5) * 20;
-        demoPower = Math.max(150, Math.min(300, demoPower));
+        // If ERG mode is on, stick close to target power
+        if (isErgMode) {
+            demoPower = targetPower + (Math.random() - 0.5) * 10;
+        } else {
+            demoPower += (Math.random() - 0.5) * 20;
+            demoPower = Math.max(150, Math.min(300, demoPower));
+        }
 
         // Vary Cadence (75-95 RPM)
         demoCadence += (Math.random() - 0.5) * 3;
@@ -412,6 +515,11 @@ function stopDemoMode() {
         demoInterval = null;
     }
 
+    // Hide Control Panel
+    trainerControlPanel.style.display = 'none';
+    isErgMode = false;
+    setPowerBtn.checked = false;
+
     // Reset displays
     heartRateDisplay.textContent = '--';
     powerDisplay.textContent = '--';
@@ -435,40 +543,108 @@ function startActivity() {
         pauseBtn.classList.remove('hidden');
         stopBtn.classList.remove('hidden');
 
-        timerInterval = setInterval(updateTimer, 1000);
+        timerInterval = setInterval(() => {
+            const now = Date.now();
+
+            // Time Warp Logic
+            if (timeMultiplier > 1) {
+                // Add extra time based on multiplier (minus 1 because real time passed 1s)
+                elapsedTime += (timeMultiplier - 1) * 1000;
+                startTime -= (timeMultiplier - 1) * 1000; // Adjust start time to match
+            } else {
+                elapsedTime = now - startTime;
+            }
+
+            elapsedSeconds = Math.floor(elapsedTime / 1000);
+            updateTimerDisplay(elapsedSeconds);
+
+            // Update Workout if active
+            if (isWorkoutActive && !isPaused) {
+                updateWorkoutLogic();
+            }
+
+            // Record data point every second (real-time)
+            // In debug mode, we might want to record more points or just accept gaps
+            // For simplicity, we record 1 point per real second, but with the warped timestamp
+            recordDataPoint();
+
+        }, 1000);
     } else if (isPaused) {
         // Resume
         isPaused = false;
         startTime = Date.now() - elapsedTime;
-
-        startBtn.classList.add('hidden');
-        pauseBtn.classList.remove('hidden');
         pauseBtn.textContent = '⏸ PAUSE';
+        pauseBtn.classList.remove('paused');
+
+        timerInterval = setInterval(() => {
+            const now = Date.now();
+
+            // Time Warp Logic
+            if (timeMultiplier > 1) {
+                // Add extra time based on multiplier (minus 1 because real time passed 1s)
+                elapsedTime += (timeMultiplier - 1) * 1000;
+                startTime -= (timeMultiplier - 1) * 1000; // Adjust start time to match
+            } else {
+                elapsedTime = now - startTime;
+            }
+
+            elapsedSeconds = Math.floor(elapsedTime / 1000);
+            updateTimerDisplay(elapsedSeconds);
+
+            // Update Workout if active
+            if (isWorkoutActive && !isPaused) {
+                updateWorkoutLogic();
+            }
+
+            // Record data point every second (real-time)
+            recordDataPoint();
+
+        }, 1000);
     }
 }
 
 function pauseActivity() {
     if (isRecording && !isPaused) {
         isPaused = true;
+        clearInterval(timerInterval);
         pauseBtn.textContent = '▶ REPRENDRE';
+        pauseBtn.classList.add('paused');
     } else if (isPaused) {
-        startActivity(); // Resume
+        startActivity();
     }
 }
 
 async function stopActivity() {
-    isRecording = false;
-    isPaused = false;
-    clearInterval(timerInterval);
+    if (isRecording) {
+        isRecording = false;
+        isPaused = false;
+        clearInterval(timerInterval);
 
-    startBtn.classList.remove('hidden');
-    pauseBtn.classList.add('hidden');
-    stopBtn.classList.add('hidden');
-    pauseBtn.textContent = '⏸ PAUSE';
+        startBtn.classList.remove('hidden');
+        pauseBtn.classList.add('hidden');
+        stopBtn.classList.add('hidden');
 
-    // Show save modal if we have data
-    if (sessionData.length > 0) {
+        // Stop Workout if active
+        if (isWorkoutActive) {
+            stopWorkout();
+        }
+
+        // Show Save Modal
         saveModal.classList.remove('hidden');
+
+        // Populate Summary
+        const hours = Math.floor(elapsedSeconds / 3600);
+        const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+        const seconds = elapsedSeconds % 60;
+        summaryDuration.textContent = formatTime(elapsedSeconds);
+
+        const avgHr = countHr > 0 ? Math.round(totalHr / countHr) : 0;
+        const avgPower = countPower > 0 ? Math.round(totalPower / countPower) : 0;
+        const avgSpeed = countSpeed > 0 ? (totalSpeed / countSpeed).toFixed(1) : 0;
+
+        summaryAvgHr.textContent = avgHr > 0 ? avgHr : '--';
+        summaryAvgPower.textContent = avgPower > 0 ? avgPower : '--';
+        summaryAvgSpeed.textContent = avgSpeed > 0 ? avgSpeed : '--';
     }
 }
 
@@ -481,6 +657,7 @@ async function handleUploadStrava() {
     }
 
     await uploadToStrava();
+    resetStats();
 }
 
 function handleDownloadTCX() {
@@ -496,38 +673,28 @@ function handleDownloadTCX() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    resetStats();
 }
 
-function updateTimer() {
-    if (!isPaused) {
-        const now = Date.now();
-        elapsedTime = now - startTime;
+function updateTimerDisplay(seconds) {
+    timerDisplay.textContent = formatTime(seconds);
+}
 
-        elapsedSeconds++;
+function recordDataPoint() {
+    if (isRecording && !isPaused) {
+        const currentHR = parseInt(heartRateDisplay.textContent) || 0;
+        const currentPower = parseInt(powerDisplay.textContent) || 0;
+        const currentCadence = parseInt(cadenceDisplay.textContent) || 0;
+        const currentSpeed = parseInt(speedDisplay.textContent) || 0;
 
-        const hours = Math.floor(elapsedSeconds / 3600);
-        const minutes = Math.floor((elapsedSeconds % 3600) / 60);
-        const seconds = elapsedSeconds % 60;
-
-        timerDisplay.textContent =
-            `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-        // Record data point if recording
-        if (isRecording && !isPaused) {
-            const currentHR = parseInt(heartRateDisplay.textContent) || 0;
-            const currentPower = parseInt(powerDisplay.textContent) || 0;
-            const currentCadence = parseInt(cadenceDisplay.textContent) || 0;
-            const currentSpeed = parseInt(speedDisplay.textContent) || 0;
-
-            sessionData.push({
-                time: new Date(),
-                elapsed: elapsedSeconds,
-                hr: currentHR,
-                power: currentPower,
-                cadence: currentCadence,
-                speed: currentSpeed
-            });
-        }
+        sessionData.push({
+            time: new Date(),
+            elapsed: elapsedSeconds,
+            hr: currentHR,
+            power: currentPower,
+            cadence: currentCadence,
+            speed: currentSpeed
+        });
     }
 }
 // --- SETTINGS & STRAVA FUNCTIONS ---
@@ -682,52 +849,6 @@ async function uploadToStrava() {
     }
 }
 
-function generateTCX(data) {
-    const startTimeStr = data[0].time.toISOString();
-    const totalTimeSeconds = data[data.length - 1].elapsed;
-
-    let trackpoints = '';
-    data.forEach(point => {
-        // Convert speed from km/h to m/s for TCX format
-        const speedMS = (point.speed * 1000) / 3600;
-
-        trackpoints += `
-            <Trackpoint>
-                <Time>${point.time.toISOString()}</Time>
-                <HeartRateBpm>
-                    <Value>${point.hr}</Value>
-                </HeartRateBpm>
-                <Cadence>${point.cadence}</Cadence>
-                <Extensions>
-                    <TPX xmlns="http://www.garmin.com/xmlschemas/ActivityExtension/v2">
-                        <Speed>${speedMS.toFixed(3)}</Speed>
-                        <Watts>${point.power}</Watts>
-                    </TPX>
-                </Extensions>
-            </Trackpoint>`;
-    });
-
-    return `<?xml version="1.0" encoding="UTF-8"?>
-    <TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2">
-        <Activities>
-            <Activity Sport="Biking">
-                <Id>${startTimeStr}</Id>
-                <Lap StartTime="${startTimeStr}">
-                    <TotalTimeSeconds>${totalTimeSeconds}</TotalTimeSeconds>
-                    <Intensity>Active</Intensity>
-                    <TriggerMethod>Manual</TriggerMethod>
-                    <Track>
-                        ${trackpoints}
-                    </Track>
-                </Lap>
-                <Creator>
-                    <Name>HR Monitor Pro - Indoor Trainer</Name>
-                </Creator>
-                <Notes>Indoor Trainer Session</Notes>
-            </Activity>
-        </Activities>
-    </TrainingCenterDatabase>`;
-}
 
 // --- HEART RATE FUNCTIONS ---
 
@@ -854,6 +975,12 @@ async function connectTrainer() {
         if (characteristic) {
             await characteristic.startNotifications();
             characteristic.addEventListener('characteristicvaluechanged', handleTrainerDataChanged);
+
+            // Initialize Control Point if FTMS
+            if (service.uuid === FTMS_SERVICE_UUID) {
+                await initTrainerControl(service);
+            }
+
             updateTrainerConnectionStatus(true);
         }
 
@@ -886,6 +1013,89 @@ function updateTrainerConnectionStatus(connected) {
         powerDisplay.textContent = '--';
         power3sDisplay.textContent = '--';
         cadenceDisplay.textContent = '--';
+
+        // Hide Control Panel
+        trainerControlPanel.style.display = 'none';
+        isErgMode = false;
+        setPowerBtn.checked = false;
+    }
+}
+
+async function initTrainerControl(service) {
+    try {
+        trainerControlCharacteristic = await service.getCharacteristic(FITNESS_MACHINE_CONTROL_POINT_UUID);
+        console.log('Trainer Control Point found!');
+        trainerControlPanel.style.display = 'block';
+
+        // Request Control
+        await requestTrainerControl();
+    } catch (e) {
+        console.log('Control Point not found or error:', e);
+    }
+}
+
+async function requestTrainerControl() {
+    if (!trainerControlCharacteristic) return;
+    try {
+        // Opcode 0x00: Request Control
+        const buffer = new Uint8Array([0x00]);
+        await trainerControlCharacteristic.writeValue(buffer);
+        console.log('Control Requested');
+    } catch (e) {
+        console.error('Error requesting control:', e);
+    }
+}
+
+async function toggleErgMode() {
+    if (!trainerControlCharacteristic && !isDemoMode) {
+        setPowerBtn.checked = false;
+        return;
+    }
+
+    if (setPowerBtn.checked) {
+        // Turn ON ERG
+        isErgMode = true;
+        await setTargetPower(targetPower);
+    } else {
+        // Turn OFF ERG (Reset to simulation or resistance mode - here just stopping ERG)
+        // Note: There isn't a simple "Stop ERG" opcode in standard FTMS without switching to another mode.
+        // We will just update UI for now, or send a "Reset" opcode 0x01 if supported.
+        // For simplicity/safety, we'll just flag it off in UI.
+        isErgMode = false;
+    }
+}
+
+function adjustTargetPower(delta) {
+    targetPower += delta;
+    if (targetPower < 50) targetPower = 50;
+    if (targetPower > 400) targetPower = 400;
+    targetPowerDisplay.textContent = targetPower;
+
+    if (isErgMode) {
+        setTargetPower(targetPower);
+    }
+}
+
+async function setTargetPower(watts) {
+    if (isDemoMode) {
+        console.log(`[DEMO] Target Power set to ${watts}W`);
+        return;
+    }
+
+    if (!trainerControlCharacteristic) return;
+
+    try {
+        // Opcode 0x05: Set Target Power
+        // Parameter: SINT16, Unit: Watts
+        const buffer = new ArrayBuffer(3);
+        const view = new DataView(buffer);
+        view.setUint8(0, 0x05); // Opcode
+        view.setInt16(1, watts, true); // Value (Little Endian)
+
+        await trainerControlCharacteristic.writeValue(buffer);
+        console.log(`Target Power sent: ${watts}W`);
+    } catch (e) {
+        console.error('Error setting target power:', e);
     }
 }
 
@@ -1060,6 +1270,15 @@ function updatePowerUI(watts) {
     maxPowerDisplay.textContent = maxPower;
     avgPowerDisplay.textContent = avgPower;
 
+    powerDisplay.textContent = watts;
+    powerDisplay.className = 'value-large'; // Reset class
+
+    // Calculate and set Zone
+    const zone = calculatePowerZone(watts, userFtp);
+    powerZoneIndicator.textContent = zone.name;
+    powerZoneIndicator.className = `zone-indicator ${zone.class}`;
+    powerDisplay.classList.add(zone.class);
+
     // Update Power Chart
     updatePowerChart(watts);
 }
@@ -1177,10 +1396,18 @@ function updatePowerChart(power) {
     powerChart.data.labels.push(timeLabel);
     powerChart.data.datasets[0].data.push(power);
 
+    // Add Target Line if workout active
+    if (isWorkoutActive) {
+        powerChart.data.datasets[1].data.push(targetPower);
+    } else {
+        powerChart.data.datasets[1].data.push(null);
+    }
+
     // Keep only last 900 points (15 minutes)
     if (powerChart.data.labels.length > 900) {
         powerChart.data.labels.shift();
         powerChart.data.datasets[0].data.shift();
+        powerChart.data.datasets[1].data.shift();
     }
 
     powerChart.update('none');
@@ -1267,6 +1494,7 @@ function resetStats() {
 
     powerChart.data.labels = [];
     powerChart.data.datasets[0].data = [];
+    powerChart.data.datasets[1].data = [];
     powerChart.update();
 
     cadenceChart.data.labels = [];
@@ -1276,4 +1504,192 @@ function resetStats() {
     speedChart.data.labels = [];
     speedChart.data.datasets[0].data = [];
     speedChart.update();
+
+    // Reset Timer
+    elapsedSeconds = 0;
+    elapsedTime = 0;
+    updateTimerDisplay(0);
+}
+
+// --- WORKOUT FUNCTIONS ---
+
+function saveUserFtp() {
+    userFtp = parseInt(userFtpInput.value);
+    localStorage.setItem('user_ftp', userFtp);
+    console.log('FTP saved:', userFtp);
+}
+
+function openWorkoutModal() {
+    workoutList.innerHTML = '';
+    workouts.forEach(workout => {
+        const div = document.createElement('div');
+        div.className = 'workout-item';
+
+        // Calculate total duration
+        const totalDurationMin = Math.floor(workout.steps.reduce((acc, s) => acc + s.duration, 0) / 60);
+
+        // Generate steps list
+        let stepsHtml = '<ul class="workout-steps-list">';
+        workout.steps.forEach(step => {
+            const duration = step.duration >= 60
+                ? `${Math.floor(step.duration / 60)} min`
+                : `${step.duration} sec`;
+            const targetWatts = Math.round(step.power * userFtp);
+            stepsHtml += `
+                <li>
+                    <span class="step-duration">${duration}</span>
+                    <span class="step-power">@ ${targetWatts}W</span>
+                    <span class="step-label">${step.label || step.type}</span>
+                </li>`;
+        });
+        stepsHtml += '</ul>';
+
+        div.innerHTML = `
+            <div class="workout-header">
+                <h3>${workout.name}</h3>
+                <span class="workout-duration">${totalDurationMin} min</span>
+            </div>
+            <p class="workout-description">${workout.description}</p>
+            ${stepsHtml}
+        `;
+        div.addEventListener('click', () => selectWorkout(workout));
+        workoutList.appendChild(div);
+    });
+    workoutModal.classList.remove('hidden');
+}
+
+function selectWorkout(workout) {
+    currentWorkout = workout;
+    workoutModal.classList.add('hidden');
+
+    // Setup Workout State
+    isWorkoutActive = true;
+    currentIntervalIndex = 0;
+    workoutElapsedTime = 0;
+    workoutTotalDuration = workout.steps.reduce((acc, s) => acc + s.duration, 0);
+
+    // Show HUD
+    workoutHud.classList.remove('hidden');
+    workoutNameDisplay.textContent = workout.name;
+    workoutNameDisplay.textContent = workout.name;
+    powerTargetContainer.classList.remove('hidden');
+
+    // Draw Profile
+    drawWorkoutProfile(workout, 0);
+
+    // Start Activity if not already started
+    if (!isRecording) {
+        startActivity();
+    }
+
+    // Initialize First Interval
+    startInterval(0);
+}
+
+
+function drawWorkoutProfile(workout, activeIndex = -1) {
+    const canvas = document.getElementById('workoutProfileChart');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth;
+    const height = canvas.height = canvas.offsetHeight;
+
+    // Clear
+    ctx.clearRect(0, 0, width, height);
+
+    const totalDuration = workout.steps.reduce((acc, s) => acc + s.duration, 0);
+    let currentX = 0;
+
+    workout.steps.forEach((step, index) => {
+        const stepWidth = (step.duration / totalDuration) * width;
+        const stepHeight = Math.min(step.power * 0.8 * height, height); // Scale power to height
+        const y = height - stepHeight;
+
+        // Color based on intensity or active state
+        if (index === activeIndex) {
+            ctx.fillStyle = '#ffaa00'; // Active
+        } else {
+            ctx.fillStyle = 'rgba(255, 170, 0, 0.3)'; // Inactive
+        }
+
+        ctx.fillRect(currentX, y, stepWidth - 1, stepHeight); // -1 for gap
+
+        currentX += stepWidth;
+    });
+}
+
+function startInterval(index) {
+    if (index >= currentWorkout.steps.length) {
+        stopWorkout();
+        return;
+    }
+
+    currentIntervalIndex = index;
+    const step = currentWorkout.steps[index];
+    intervalTimeRemaining = step.duration;
+
+    // Update UI
+    intervalNameDisplay.textContent = step.label || step.type.toUpperCase();
+
+    // Next Interval Preview
+    if (index + 1 < currentWorkout.steps.length) {
+        const nextStep = currentWorkout.steps[index + 1];
+        nextIntervalNameDisplay.textContent = nextStep.label || nextStep.type.toUpperCase();
+    } else {
+        nextIntervalNameDisplay.textContent = 'FIN';
+    }
+
+    // Set Target Power (ERG)
+    const targetW = Math.round(step.power * userFtp);
+    powerTargetValue.textContent = targetW;
+
+    // Auto-set ERG if Trainer Connected
+    if (trainerDevice && trainerDevice.gatt.connected) {
+        // Ensure ERG is ON
+        if (!isErgMode) {
+            toggleErgMode();
+        }
+        setTargetPower(targetW);
+    }
+
+    // Update Control Panel Target Display too
+    targetPower = targetW;
+    targetPowerDisplay.textContent = targetPower;
+
+    // Redraw Profile with active step
+    drawWorkoutProfile(currentWorkout, index);
+}
+
+function updateWorkoutLogic() {
+    if (!isWorkoutActive) return;
+
+    workoutElapsedTime += timeMultiplier;
+    intervalTimeRemaining -= timeMultiplier;
+
+    // Update HUD Timer
+    const totalMins = Math.floor(workoutElapsedTime / 60).toString().padStart(2, '0');
+    const totalSecs = (workoutElapsedTime % 60).toString().padStart(2, '0');
+    const durationMins = Math.floor(workoutTotalDuration / 60).toString().padStart(2, '0');
+    const durationSecs = (workoutTotalDuration % 60).toString().padStart(2, '0');
+    workoutTotalTimeDisplay.textContent = `${totalMins}:${totalSecs} / ${durationMins}:${durationSecs}`;
+
+    // Update Interval Timer
+    const intMins = Math.floor(intervalTimeRemaining / 60).toString().padStart(2, '0');
+    const intSecs = (intervalTimeRemaining % 60).toString().padStart(2, '0');
+    intervalTimeRemainingDisplay.textContent = `${intMins}:${intSecs}`;
+
+    // Update Progress Bar
+    const progress = (workoutElapsedTime / workoutTotalDuration) * 100;
+    workoutProgressBar.style.width = `${progress}%`;
+
+    // Check Interval End
+    if (intervalTimeRemaining <= 0) {
+        startInterval(currentIntervalIndex + 1);
+    }
+}
+
+function stopWorkout() {
+    isWorkoutActive = false;
+    workoutHud.classList.add('hidden');
+    powerTargetContainer.classList.add('hidden');
+    alert('Entraînement terminé ! Bien joué ! 🚴‍♂️🔥');
 }

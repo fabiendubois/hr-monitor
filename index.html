@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Chart.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Workout Library -->
+    <script src="workouts.js"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +33,11 @@
                     <button id="demoBtn" class="btn-connect btn-demo">
                         <span class="icon">🎮</span> DEMO
                     </button>
+                    <button id="workoutsBtn" class="btn-connect btn-workout">
+                        <span class="icon">📋</span> ENTRAÎNEMENTS
+                    </button>
                     <button id="settingsBtn" class="btn-icon" title="Paramètres Strava">⚙️</button>
+                    <button id="debugBtn" class="btn-icon" title="Mode Debug (Time Warp)">⚡️</button>
                 </div>
             </div>
         </header>
@@ -39,6 +45,35 @@
         <main>
 
             <div class="dashboard">
+                <!-- Workout HUD (Hidden by default) -->
+                <div id="workoutHud" class="card workout-hud hidden">
+                    <div class="hud-header">
+                        <h2 id="workoutName">Nom de l'entraînement</h2>
+                        <span id="workoutTotalTime">00:00 / 00:00</span>
+                    </div>
+                    <div class="hud-progress">
+                        <div class="progress-bar">
+                            <div id="workoutProgressBar" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="profile-chart-container">
+                            <canvas id="workoutProfileChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="hud-interval">
+                        <div class="interval-info">
+                            <span class="interval-label">INTERVALLE</span>
+                            <span id="intervalName" class="interval-name">--</span>
+                        </div>
+                        <div class="interval-timer">
+                            <span id="intervalTimeRemaining">00:00</span>
+                        </div>
+                        <div class="interval-next">
+                            <span class="next-label">SUIVANT:</span>
+                            <span id="nextIntervalName">--</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Activity Controls & Timer -->
                 <div class="activity-panel">
                     <div id="timerDisplay" class="timer">00:00:00</div>
@@ -46,6 +81,28 @@
                         <button id="startBtn" class="btn-control btn-start">▶ DÉMARRER</button>
                         <button id="pauseBtn" class="btn-control btn-pause hidden">⏸ PAUSE</button>
                         <button id="stopBtn" class="btn-control btn-stop hidden">⏹ STOP & SAVE</button>
+                    </div>
+                </div>
+
+                <!-- Trainer Control Panel -->
+                <div class="card control-panel" id="trainerControlPanel" style="display: none;">
+                    <h2 class="metric-title">CONTRÔLE TRAINER</h2>
+
+                    <!-- ERG Control Row -->
+                    <div class="trainer-property">
+                        <span class="property-label">ERG</span>
+                        <div class="property-controls">
+                            <button id="decreasePowerBtn" class="btn-adjust">-</button>
+                            <div class="target-display">
+                                <span id="targetPowerDisplay">150</span>
+                                <span class="unit">W</span>
+                            </div>
+                            <button id="increasePowerBtn" class="btn-adjust">+</button>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="setPowerBtn">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
                 </div>
 
@@ -82,6 +139,10 @@
                     <div class="metric-current">
                         <span id="power" class="value-large">--</span>
                         <span class="unit-large">WATTS</span>
+                    </div>
+                    <div class="zone-indicator" id="powerZoneIndicator">ZONE --</div>
+                    <div class="target-indicator hidden" id="powerTargetContainer">
+                        CIBLE: <span id="powerTargetValue" class="target-value">--</span> W
                     </div>
                     <div class="metric-stats">
                         <div class="stat-item">
@@ -159,8 +220,10 @@
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal hidden">
             <div class="modal-content">
-                <span id="closeSettings" class="close">&times;</span>
-                <h2>Paramètres Strava</h2>
+                <div class="modal-header">
+                    <h2>Paramètres Strava</h2>
+                    <span id="closeSettings" class="close">&times;</span>
+                </div>
                 <p class="info-text">Pour uploader sur Strava, vous devez fournir vos propres clés API (disponibles sur
                     <a href="https://www.strava.com/settings/api" target="_blank">strava.com/settings/api</a>).
                 </p>
@@ -175,6 +238,11 @@
                     <input type="password" id="clientSecret" placeholder="ex: a1b2c3d4...">
                 </div>
 
+                <div class="form-group">
+                    <label for="userFtp">Votre FTP (Watts)</label>
+                    <input type="number" id="userFtp" placeholder="ex: 250" value="220">
+                </div>
+
                 <div class="form-actions">
                     <button id="saveSettingsBtn" class="btn-primary">Sauvegarder</button>
                     <button id="stravaAuthBtn" class="btn-strava hidden">Connecter Strava</button>
@@ -183,10 +251,59 @@
             </div>
         </div>
 
+        <!-- Workout Selection Modal -->
+        <div id="workoutModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Choisir un entraînement</h2>
+                    <span id="closeWorkoutModal" class="close">&times;</span>
+                </div>
+                <div id="workoutList" class="workout-list">
+                    <!-- Workouts will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Panel -->
+        <div id="debugPanel" class="debug-panel hidden">
+            <h3>Time Warp ⚡️</h3>
+            <div class="debug-controls">
+                <button class="btn-debug active" data-speed="1">x1</button>
+                <button class="btn-debug" data-speed="10">x10</button>
+                <button class="btn-debug" data-speed="60">x60</button>
+            </div>
+        </div>
+
         <!-- Save Activity Modal -->
         <div id="saveModal" class="modal hidden">
             <div class="modal-content">
-                <h2>Sauvegarder l'activité</h2>
+                <div class="modal-header">
+                    <h2>Sauvegarder l'activité</h2>
+                    <span id="closeSaveModal" class="close">&times;</span>
+                </div>
+
+                <div class="activity-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">DURÉE</span>
+                        <span id="summaryDuration" class="summary-value">00:00:00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">FC MOY</span>
+                        <span id="summaryAvgHr" class="summary-value">--</span>
+                        <span class="summary-unit">BPM</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">PUISSANCE MOY</span>
+                        <span id="summaryAvgPower" class="summary-value">--</span>
+                        <span class="summary-unit">W</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">VITESSE MOY</span>
+                        <span id="summaryAvgSpeed" class="summary-value">--</span>
+                        <span class="summary-unit">KM/H</span>
+                    </div>
+                </div>
+
                 <p class="info-text">Choisissez comment sauvegarder votre session :</p>
 
                 <div class="save-options">
@@ -208,6 +325,8 @@
             <p>⚠️ Compatible uniquement avec <strong>Google Chrome</strong>, Edge et Opera.</p>
         </footer>
     </div>
+    <script src="workouts.js"></script>
+    <script src="utils.js"></script>
     <script src="app.js"></script>
 </body>
 

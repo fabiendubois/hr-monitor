@@ -61,8 +61,8 @@ h1 {
 }
 
 .btn-trainer {
-    background-color: var(--accent-color);
-    filter: hue-rotate(45deg);
+    background-color: #4b5563;
+    color: #ffffff;
 }
 
 .btn-demo {
@@ -82,8 +82,8 @@ h1 {
 }
 
 .btn-connect {
-    background-color: var(--accent-color);
-    color: #000;
+    background-color: #4b5563;
+    color: #ffffff;
     border: none;
     padding: 10px 20px;
     border-radius: 50px;
@@ -297,14 +297,25 @@ h1 {
     position: relative;
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
 .close {
-    position: absolute;
-    top: 1rem;
-    right: 1.5rem;
     color: #aaa;
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
 }
 
 .close:hover {
@@ -503,16 +514,510 @@ footer {
     opacity: 0.7;
 }
 
+/* Trainer Control Panel */
+.control-panel {
+    background: linear-gradient(145deg, #1a1d24, #22262e);
+    border: 1px solid rgba(0, 242, 255, 0.1);
+}
+
+/* Trainer Property Rows */
+.trainer-property {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-top: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.trainer-property:last-child {
+    border-bottom: none;
+}
+
+.property-left,
+.property-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.property-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.property-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.target-power-input {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px 20px;
+    border-radius: 50px;
+}
+
+.target-display {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    min-width: 80px;
+    justify-content: center;
+}
+
+#targetPowerDisplay {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text-primary);
+}
+
+.btn-adjust {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--text-secondary);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-adjust:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: scale(1.1);
+}
+
+
+/* ERG Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-secondary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked+.toggle-slider {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+}
+
+.toggle-switch input:checked+.toggle-slider:before {
+    transform: translateX(26px);
+    background-color: #0a0e17;
+    box-shadow: 0 2px 8px rgba(0, 242, 255, 0.5);
+}
+
+.toggle-switch:hover .toggle-slider {
+    border-color: var(--accent-color);
+}
+
+.toggle-switch input:checked+.toggle-slider:after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    border-radius: 34px;
+    background: radial-gradient(circle, rgba(0, 242, 255, 0.2) 0%, transparent 70%);
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+
+/* Workout UI */
+.btn-workout {
+    background-color: #ffaa00;
+}
+
+.workout-hud {
+    background: linear-gradient(145deg, #1a1d24, #2e2215);
+    border: 1px solid rgba(255, 170, 0, 0.2);
+    margin-bottom: 15px;
+}
+
+.hud-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.hud-header h2 {
+    font-size: 1.2rem;
+    color: #ffaa00;
+}
+
+.hud-progress {
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #ffaa00;
+    transition: width 1s linear;
+}
+
+.profile-chart-container {
+    margin-top: 10px;
+    height: 60px;
+    width: 100%;
+}
+
+/* Debug Panel */
+.debug-panel {
+    position: absolute;
+    top: 70px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid #ff2e63;
+    padding: 15px;
+    border-radius: 10px;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(255, 46, 99, 0.3);
+}
+
+.debug-panel h3 {
+    color: #ff2e63;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.debug-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-debug {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.btn-debug:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-debug.active {
+    background: #ff2e63;
+    border-color: #ff2e63;
+    font-weight: bold;
+}
+
+.hud-interval {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.interval-info,
+.interval-next {
+    display: flex;
+    flex-direction: column;
+}
+
+.interval-label,
+.next-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.interval-name {
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.interval-timer {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    font-family: monospace;
+}
+
+/* Target Indicators */
+.target-indicator {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: -10px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 10px;
+    border-radius: 10px;
+    display: inline-block;
+    align-self: center;
+}
+
+.target-value {
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+/* Workout List */
+.workout-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.workout-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+}
+
+.workout-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #ffaa00;
+}
+
+.workout-item h3 {
+    color: #ffaa00;
+    margin: 0;
+}
+
+.workout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.workout-duration {
+    background: rgba(255, 170, 0, 0.2);
+    color: #ffaa00;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.workout-description {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.workout-steps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 5px;
+}
+
+.workout-steps-list li {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.step-duration {
+    font-weight: bold;
+    color: #fff;
+    min-width: 45px;
+}
+
+.step-power {
+    color: #ffaa00;
+    font-weight: bold;
+    min-width: 50px;
+}
+
+.step-label {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* Power Zones */
+.zone-z1 {
+    color: #9e9e9e !important;
+}
+
+/* Active Recovery - Gray */
+.zone-z2 {
+    color: #3b82f6 !important;
+}
+
+/* Endurance - Blue */
+.zone-z3 {
+    color: #10b981 !important;
+}
+
+/* Tempo - Green */
+.zone-z4 {
+    color: #f59e0b !important;
+}
+
+/* Threshold - Yellow */
+.zone-z5 {
+    color: #f97316 !important;
+}
+
+/* VO2 Max - Orange */
+.zone-z6 {
+    color: #ef4444 !important;
+}
+
+/* Anaerobic - Red */
+.zone-z7 {
+    color: #8b5cf6 !important;
+}
+
+/* Neuromuscular - Purple */
+
+/* Cadence and Speed - White Display */
+#cadence,
+#speed {
+    color: #ffffff !important;
+}
+
+/* Activity Summary */
+.activity-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 2rem 0;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.summary-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+}
+
+.summary-unit {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 /* Animations */
 @keyframes beat {
 
     0%,
     100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes pulse {
+    0% {
         transform: scale(1);
     }
 
     50% {
         transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
     }
 }
 
