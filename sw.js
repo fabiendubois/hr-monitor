@@ -7,6 +7,7 @@ const ASSETS = [
   './utils.js',
   './workouts.js',
   './icon.svg',
+  './icon.png',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap'
