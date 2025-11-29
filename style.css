@@ -207,17 +207,32 @@ h1 {
     font-size: 0.9rem;
 }
 
+/* Dashboard Layout */
+.dashboard-row {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.dashboard-row>* {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .dashboard-row {
+        flex-direction: column;
+    }
+}
+
 /* Activity Panel */
 .activity-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 1rem;
-    margin-bottom: 15px;
-    background: rgba(255, 255, 255, 0.03);
-    padding: 1.5rem;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Background and border handled by .card class */
 }
 
 .timer {
@@ -516,8 +531,10 @@ footer {
 
 /* Trainer Control Panel */
 .control-panel {
-    background: linear-gradient(145deg, #1a1d24, #22262e);
-    border: 1px solid rgba(0, 242, 255, 0.1);
+    /* Background and border handled by .card class */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* Trainer Property Rows */
@@ -1027,11 +1044,7 @@ footer {
 
 /* Desktop Layout - 2x2 Grid */
 @media (min-width: 1024px) {
-    .dashboard {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
+    /* .dashboard grid layout removed */
 
     .metric-block {
         gap: 10px;

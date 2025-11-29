@@ -472,7 +472,7 @@ function startDemoMode() {
     demoSpeed = 25 + Math.random() * 5;
 
     // Show Control Panel in Demo Mode
-    trainerControlPanel.style.display = 'block';
+    // trainerControlPanel.style.display = 'block'; // Always visible now
 
     // Simulate data every second
     demoInterval = setInterval(() => {
@@ -516,7 +516,7 @@ function stopDemoMode() {
     }
 
     // Hide Control Panel
-    trainerControlPanel.style.display = 'none';
+    // trainerControlPanel.style.display = 'none'; // Always visible now
     isErgMode = false;
     setPowerBtn.checked = false;
 
@@ -1015,7 +1015,7 @@ function updateTrainerConnectionStatus(connected) {
         cadenceDisplay.textContent = '--';
 
         // Hide Control Panel
-        trainerControlPanel.style.display = 'none';
+        // trainerControlPanel.style.display = 'none'; // Always visible now
         isErgMode = false;
         setPowerBtn.checked = false;
     }
@@ -1025,7 +1025,7 @@ async function initTrainerControl(service) {
     try {
         trainerControlCharacteristic = await service.getCharacteristic(FITNESS_MACHINE_CONTROL_POINT_UUID);
         console.log('Trainer Control Point found!');
-        trainerControlPanel.style.display = 'block';
+        // trainerControlPanel.style.display = 'block'; // Always visible now
 
         // Request Control
         await requestTrainerControl();

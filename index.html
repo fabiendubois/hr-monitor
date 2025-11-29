@@ -9,7 +9,7 @@
     <!-- Chart.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Workout Library -->
-    <script src="workouts.js"></script>
+    <!-- Removed duplicate script -->
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,144 +74,153 @@
                     </div>
                 </div>
 
-                <!-- Activity Controls & Timer -->
-                <div class="activity-panel">
-                    <div id="timerDisplay" class="timer">00:00:00</div>
-                    <div class="controls">
-                        <button id="startBtn" class="btn-control btn-start">▶ DÉMARRER</button>
-                        <button id="pauseBtn" class="btn-control btn-pause hidden">⏸ PAUSE</button>
-                        <button id="stopBtn" class="btn-control btn-stop hidden">⏹ STOP & SAVE</button>
+                <!-- Row 1: Activity & Trainer -->
+                <div class="dashboard-row">
+                    <!-- Activity Controls & Timer -->
+                    <div class="card activity-panel">
+                        <div id="timerDisplay" class="timer">00:00:00</div>
+                        <div class="controls">
+                            <button id="startBtn" class="btn-control btn-start">▶ DÉMARRER</button>
+                            <button id="pauseBtn" class="btn-control btn-pause hidden">⏸ PAUSE</button>
+                            <button id="stopBtn" class="btn-control btn-stop hidden">⏹ STOP & SAVE</button>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Trainer Control Panel -->
-                <div class="card control-panel" id="trainerControlPanel" style="display: none;">
-                    <h2 class="metric-title">CONTRÔLE TRAINER</h2>
+                    <!-- Trainer Control Panel -->
+                    <div class="card control-panel" id="trainerControlPanel">
+                        <h2 class="metric-title">CONTRÔLE TRAINER</h2>
 
-                    <!-- ERG Control Row -->
-                    <div class="trainer-property">
-                        <span class="property-label">ERG</span>
-                        <div class="property-controls">
-                            <button id="decreasePowerBtn" class="btn-adjust">-</button>
-                            <div class="target-display">
-                                <span id="targetPowerDisplay">150</span>
-                                <span class="unit">W</span>
+                        <!-- ERG Control Row -->
+                        <div class="trainer-property">
+                            <span class="property-label">ERG</span>
+                            <div class="property-controls">
+                                <button id="decreasePowerBtn" class="btn-adjust">-</button>
+                                <div class="target-display">
+                                    <span id="targetPowerDisplay">150</span>
+                                    <span class="unit">W</span>
+                                </div>
+                                <button id="increasePowerBtn" class="btn-adjust">+</button>
                             </div>
-                            <button id="increasePowerBtn" class="btn-adjust">+</button>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setPowerBtn">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="setPowerBtn">
-                            <span class="toggle-slider"></span>
-                        </label>
                     </div>
                 </div>
 
-                <!-- HR Block -->
-                <div class="card metric-block">
-                    <h2 class="metric-title">FRÉQUENCE CARDIAQUE</h2>
-                    <div class="metric-current">
-                        <span id="heartRate" class="value-large">--</span>
-                        <span class="unit-large">BPM</span>
+                <!-- Row 2: Power & HR -->
+                <div class="dashboard-row">
+                    <!-- Power Block -->
+                    <div class="card metric-block">
+                        <h2 class="metric-title">PUISSANCE</h2>
+                        <div class="metric-current">
+                            <span id="power" class="value-large">--</span>
+                            <span class="unit-large">WATTS</span>
+                        </div>
+                        <div class="zone-indicator" id="powerZoneIndicator">ZONE --</div>
+                        <div class="target-indicator hidden" id="powerTargetContainer">
+                            CIBLE: <span id="powerTargetValue" class="target-value">--</span> W
+                        </div>
+                        <div class="metric-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">MIN</span>
+                                <span id="minPower" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MAX</span>
+                                <span id="maxPower" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MOY</span>
+                                <span id="avgPower" class="stat-value">--</span>
+                            </div>
+                        </div>
+                        <div class="metric-chart">
+                            <canvas id="powerChart"></canvas>
+                        </div>
                     </div>
-                    <div class="zone-indicator" id="zoneIndicator">ZONE --</div>
-                    <div class="metric-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">MIN</span>
-                            <span id="minHr" class="stat-value">--</span>
+
+                    <!-- HR Block -->
+                    <div class="card metric-block">
+                        <h2 class="metric-title">FRÉQUENCE CARDIAQUE</h2>
+                        <div class="metric-current">
+                            <span id="heartRate" class="value-large">--</span>
+                            <span class="unit-large">BPM</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MAX</span>
-                            <span id="maxHr" class="stat-value">--</span>
+                        <div class="zone-indicator" id="zoneIndicator">ZONE --</div>
+                        <div class="metric-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">MIN</span>
+                                <span id="minHr" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MAX</span>
+                                <span id="maxHr" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MOY</span>
+                                <span id="avgHr" class="stat-value">--</span>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MOY</span>
-                            <span id="avgHr" class="stat-value">--</span>
+                        <div class="metric-chart">
+                            <canvas id="hrChart"></canvas>
                         </div>
-                    </div>
-                    <div class="metric-chart">
-                        <canvas id="hrChart"></canvas>
                     </div>
                 </div>
 
-                <!-- Power Block -->
-                <div class="card metric-block">
-                    <h2 class="metric-title">PUISSANCE</h2>
-                    <div class="metric-current">
-                        <span id="power" class="value-large">--</span>
-                        <span class="unit-large">WATTS</span>
-                    </div>
-                    <div class="zone-indicator" id="powerZoneIndicator">ZONE --</div>
-                    <div class="target-indicator hidden" id="powerTargetContainer">
-                        CIBLE: <span id="powerTargetValue" class="target-value">--</span> W
-                    </div>
-                    <div class="metric-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">MIN</span>
-                            <span id="minPower" class="stat-value">--</span>
+                <!-- Row 3: Speed & Cadence -->
+                <div class="dashboard-row">
+                    <!-- Speed Block -->
+                    <div class="card metric-block">
+                        <h2 class="metric-title">VITESSE</h2>
+                        <div class="metric-current">
+                            <span id="speed" class="value-large">--</span>
+                            <span class="unit-large">KM/H</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MAX</span>
-                            <span id="maxPower" class="stat-value">--</span>
+                        <div class="metric-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">MIN</span>
+                                <span id="minSpeed" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MAX</span>
+                                <span id="maxSpeed" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MOY</span>
+                                <span id="avgSpeed" class="stat-value">--</span>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MOY</span>
-                            <span id="avgPower" class="stat-value">--</span>
+                        <div class="metric-chart">
+                            <canvas id="speedChart"></canvas>
                         </div>
                     </div>
-                    <div class="metric-chart">
-                        <canvas id="powerChart"></canvas>
-                    </div>
-                </div>
 
-                <!-- Cadence Block -->
-                <div class="card metric-block">
-                    <h2 class="metric-title">CADENCE</h2>
-                    <div class="metric-current">
-                        <span id="cadence" class="value-large">--</span>
-                        <span class="unit-large">RPM</span>
-                    </div>
-                    <div class="metric-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">MIN</span>
-                            <span id="minCadence" class="stat-value">--</span>
+                    <!-- Cadence Block -->
+                    <div class="card metric-block">
+                        <h2 class="metric-title">CADENCE</h2>
+                        <div class="metric-current">
+                            <span id="cadence" class="value-large">--</span>
+                            <span class="unit-large">RPM</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MAX</span>
-                            <span id="maxCadence" class="stat-value">--</span>
+                        <div class="metric-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">MIN</span>
+                                <span id="minCadence" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MAX</span>
+                                <span id="maxCadence" class="stat-value">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">MOY</span>
+                                <span id="avgCadence" class="stat-value">--</span>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MOY</span>
-                            <span id="avgCadence" class="stat-value">--</span>
+                        <div class="metric-chart">
+                            <canvas id="cadenceChart"></canvas>
                         </div>
-                    </div>
-                    <div class="metric-chart">
-                        <canvas id="cadenceChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Speed Block -->
-                <div class="card metric-block">
-                    <h2 class="metric-title">VITESSE</h2>
-                    <div class="metric-current">
-                        <span id="speed" class="value-large">--</span>
-                        <span class="unit-large">KM/H</span>
-                    </div>
-                    <div class="metric-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">MIN</span>
-                            <span id="minSpeed" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MAX</span>
-                            <span id="maxSpeed" class="stat-value">--</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">MOY</span>
-                            <span id="avgSpeed" class="stat-value">--</span>
-                        </div>
-                    </div>
-                    <div class="metric-chart">
-                        <canvas id="speedChart"></canvas>
                     </div>
                 </div>
             </div>
