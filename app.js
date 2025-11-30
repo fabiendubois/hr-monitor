@@ -74,6 +74,19 @@ const debugBtn = document.getElementById('debugBtn');
 const debugPanel = document.getElementById('debugPanel');
 const debugButtons = document.querySelectorAll('.btn-debug');
 
+// BLE Debug Elements
+const bleDebugBtn = document.getElementById('bleDebugBtn');
+const bluetoothDebugModal = document.getElementById('bluetoothDebugModal');
+const closeBleDebugModal = document.getElementById('closeBleDebugModal');
+const bleSystemInfo = document.getElementById('bleSystemInfo');
+const bleLogConsole = document.getElementById('bleLogConsole');
+const clearBleLogsBtn = document.getElementById('clearBleLogsBtn');
+
+// Bluefy Elements
+const bluefyModal = document.getElementById('bluefyModal');
+const closeBluefyModal = document.getElementById('closeBluefyModal');
+const continueAnywayBtn = document.getElementById('continueAnywayBtn');
+
 // Summary Elements
 const summaryDuration = document.getElementById('summaryDuration');
 const summaryAvgHr = document.getElementById('summaryAvgHr');
@@ -125,6 +138,7 @@ let demoSpeed = 25;
 
 // Debug State
 let timeMultiplier = 1;
+let bleLogs = [];
 
 // Trainer Control State
 let targetPower = 150;
@@ -449,6 +463,87 @@ debugButtons.forEach(btn => {
         console.log('Time Warp:', timeMultiplier + 'x');
     });
 });
+
+// BLE Debug Listeners
+bleDebugBtn.addEventListener('click', openBleDebugModal);
+closeBleDebugModal.addEventListener('click', () => bluetoothDebugModal.classList.add('hidden'));
+clearBleLogsBtn.addEventListener('click', () => {
+    bleLogs = [];
+    renderBleLogs();
+});
+
+// Bluefy Listeners
+closeBluefyModal.addEventListener('click', () => bluefyModal.classList.add('hidden'));
+continueAnywayBtn.addEventListener('click', () => bluefyModal.classList.add('hidden'));
+
+// Check iOS and Bluefy on Startup
+checkBluefySupport();
+
+// --- BLE DEBUG FUNCTIONS ---
+
+function logBLE(message, type = 'info') {
+    const entry = {
+        time: new Date().toLocaleTimeString(),
+        message: message,
+        type: type
+    };
+    bleLogs.push(entry);
+    console.log(`[BLE][${type.toUpperCase()}] ${message}`);
+
+    // Update Console if visible
+    if (!bluetoothDebugModal.classList.contains('hidden')) {
+        renderBleLogs();
+    }
+}
+
+function renderBleLogs() {
+    bleLogConsole.innerHTML = bleLogs.map(log => `
+        <div class="log-entry ${log.type === 'error' ? 'log-error' : log.type === 'success' ? 'log-success' : 'log-info'}">
+            <span class="log-time">[${log.time}]</span>
+            <span class="log-msg">${log.message}</span>
+        </div>
+    `).join('');
+    bleLogConsole.scrollTop = bleLogConsole.scrollHeight;
+}
+
+function openBleDebugModal() {
+    bluetoothDebugModal.classList.remove('hidden');
+
+    // Update System Info
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isBluefy = /Bluefy/i.test(navigator.userAgent) || window.bluefy;
+    const webBluetoothSupported = 'bluetooth' in navigator;
+
+    bleSystemInfo.innerHTML = `
+        <strong>User Agent:</strong> ${navigator.userAgent}<br>
+        <strong>Platform:</strong> ${navigator.platform}<br>
+        <strong>iOS Detected:</strong> ${isIOS ? '✅ OUI' : '❌ NON'}<br>
+        <strong>Bluefy Detected:</strong> ${isBluefy ? '✅ OUI' : '❌ NON'}<br>
+        <strong>Web Bluetooth API:</strong> ${webBluetoothSupported ? '✅ DISPONIBLE' : '❌ INDISPONIBLE'}
+    `;
+
+    renderBleLogs();
+}
+
+function checkBluefySupport() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const webBluetoothSupported = 'bluetooth' in navigator;
+
+    // Check specifically for Bluefy
+    // Note: Bluefy usually puts 'Bluefy' in userAgent, or injects window.bluefy object
+    const isBluefy = /Bluefy/i.test(navigator.userAgent) || (window.bluefy !== undefined);
+
+    logBLE(`System Check: iOS=${isIOS}, BLE=${webBluetoothSupported}, Bluefy=${isBluefy}`);
+
+    if (isIOS && !webBluetoothSupported && !isBluefy) {
+        // Show Warning Modal for iOS users NOT on Bluefy
+        bluefyModal.classList.remove('hidden');
+        logBLE('Showing Bluefy Warning Modal', 'warning');
+    } else if (isIOS && isBluefy) {
+        logBLE('Bluefy detected on iOS. Web Bluetooth should work.', 'success');
+    }
+}
+
 
 // --- DEMO MODE FUNCTIONS ---
 
@@ -862,29 +957,30 @@ async function toggleHRConnection() {
 
 async function connectHR() {
     try {
-        console.log('Requesting Heart Rate Device...');
+        logBLE('Requesting Heart Rate Device...');
         hrDevice = await navigator.bluetooth.requestDevice({
             filters: [{ services: [HR_SERVICE_UUID] }]
         });
 
         hrDevice.addEventListener('gattserverdisconnected', onHRDisconnected);
 
-        console.log('Connecting to GATT Server...');
+        logBLE('Connecting to GATT Server...');
         hrServer = await hrDevice.gatt.connect();
 
-        console.log('Getting Heart Rate Service...');
+        logBLE('Getting Heart Rate Service...');
         const service = await hrServer.getPrimaryService(HR_SERVICE_UUID);
 
-        console.log('Getting Heart Rate Characteristic...');
+        logBLE('Getting Heart Rate Characteristic...');
         heartRateCharacteristic = await service.getCharacteristic(HR_CHARACTERISTIC_UUID);
 
-        console.log('Starting Notifications...');
+        logBLE('Starting Notifications...');
         await heartRateCharacteristic.startNotifications();
         heartRateCharacteristic.addEventListener('characteristicvaluechanged', handleHeartRateChanged);
 
         updateHRConnectionStatus(true);
+        logBLE('HR Connected Successfully!', 'success');
     } catch (error) {
-        console.error('Argh! ' + error);
+        logBLE('Error connecting HR: ' + error, 'error');
         alert('Erreur de connexion HR : ' + error);
     }
 }
@@ -893,12 +989,13 @@ function disconnectHR() {
     if (hrDevice) {
         if (hrDevice.gatt.connected) {
             hrDevice.gatt.disconnect();
+            logBLE('Disconnecting HR Device...');
         }
     }
 }
 
 function onHRDisconnected(event) {
-    console.log(`HR Device disconnected.`);
+    logBLE(`HR Device disconnected.`, 'warning');
     updateHRConnectionStatus(false);
     resetStats();
 }
@@ -944,7 +1041,7 @@ async function toggleTrainerConnection() {
 
 async function connectTrainer() {
     try {
-        console.log('Requesting Trainer Device...');
+        logBLE('Requesting Trainer Device...');
         trainerDevice = await navigator.bluetooth.requestDevice({
             filters: [
                 { services: [FTMS_SERVICE_UUID] },
@@ -954,7 +1051,7 @@ async function connectTrainer() {
 
         trainerDevice.addEventListener('gattserverdisconnected', onTrainerDisconnected);
 
-        console.log('Connecting to Trainer GATT Server...');
+        logBLE('Connecting to Trainer GATT Server...');
         trainerServer = await trainerDevice.gatt.connect();
 
         let service;
@@ -964,12 +1061,12 @@ async function connectTrainer() {
         try {
             service = await trainerServer.getPrimaryService(FTMS_SERVICE_UUID);
             characteristic = await service.getCharacteristic(INDOOR_BIKE_DATA_UUID);
-            console.log('Found FTMS Service');
+            logBLE('Found FTMS Service', 'success');
         } catch (e) {
-            console.log('FTMS not found, trying Cycling Power...');
+            logBLE('FTMS not found, trying Cycling Power...', 'info');
             service = await trainerServer.getPrimaryService(CYCLING_POWER_SERVICE_UUID);
             characteristic = await service.getCharacteristic(CYCLING_POWER_MEASUREMENT_UUID);
-            console.log('Found Cycling Power Service');
+            logBLE('Found Cycling Power Service', 'success');
         }
 
         if (characteristic) {
@@ -982,10 +1079,11 @@ async function connectTrainer() {
             }
 
             updateTrainerConnectionStatus(true);
+            logBLE('Trainer Connected Successfully!', 'success');
         }
 
     } catch (error) {
-        console.error('Trainer Connection Error: ' + error);
+        logBLE('Trainer Connection Error: ' + error, 'error');
         alert('Erreur de connexion Trainer : ' + error);
     }
 }
@@ -993,11 +1091,12 @@ async function connectTrainer() {
 function disconnectTrainer() {
     if (trainerDevice && trainerDevice.gatt.connected) {
         trainerDevice.gatt.disconnect();
+        logBLE('Disconnecting Trainer...');
     }
 }
 
 function onTrainerDisconnected() {
-    console.log('Trainer disconnected');
+    logBLE('Trainer disconnected', 'warning');
     updateTrainerConnectionStatus(false);
 }
 
@@ -1024,13 +1123,13 @@ function updateTrainerConnectionStatus(connected) {
 async function initTrainerControl(service) {
     try {
         trainerControlCharacteristic = await service.getCharacteristic(FITNESS_MACHINE_CONTROL_POINT_UUID);
-        console.log('Trainer Control Point found!');
+        logBLE('Trainer Control Point found!', 'success');
         // trainerControlPanel.style.display = 'block'; // Always visible now
 
         // Request Control
         await requestTrainerControl();
     } catch (e) {
-        console.log('Control Point not found or error:', e);
+        logBLE('Control Point not found or error: ' + e, 'warning');
     }
 }
 
@@ -1040,9 +1139,9 @@ async function requestTrainerControl() {
         // Opcode 0x00: Request Control
         const buffer = new Uint8Array([0x00]);
         await trainerControlCharacteristic.writeValue(buffer);
-        console.log('Control Requested');
+        logBLE('Control Requested (FTMS)');
     } catch (e) {
-        console.error('Error requesting control:', e);
+        logBLE('Error requesting control: ' + e, 'error');
     }
 }
 
@@ -1093,9 +1192,9 @@ async function setTargetPower(watts) {
         view.setInt16(1, watts, true); // Value (Little Endian)
 
         await trainerControlCharacteristic.writeValue(buffer);
-        console.log(`Target Power sent: ${watts}W`);
+        logBLE(`Target Power sent: ${watts}W`);
     } catch (e) {
-        console.error('Error setting target power:', e);
+        logBLE('Error setting target power: ' + e, 'error');
     }
 }
 

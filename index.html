@@ -45,6 +45,7 @@
                         <span class="icon">📋</span> ENTRAÎNEMENTS
                     </button>
                     <button id="settingsBtn" class="btn-icon" title="Paramètres Strava">⚙️</button>
+                    <button id="bleDebugBtn" class="btn-icon" title="Logs Bluetooth">🔧</button>
                     <button id="debugBtn" class="btn-icon" title="Mode Debug (Time Warp)">⚡️</button>
                 </div>
             </div>
@@ -335,6 +336,47 @@
                 </div>
 
                 <button id="cancelSaveBtn" class="btn-cancel">Annuler</button>
+            </div>
+        </div>
+
+        <!-- Bluetooth Debug Modal -->
+        <div id="bluetoothDebugModal" class="modal hidden">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h2>Bluetooth Debug</h2>
+                    <span id="closeBleDebugModal" class="close">&times;</span>
+                </div>
+                <div class="debug-info-section">
+                    <h3>Infos Système</h3>
+                    <p id="bleSystemInfo" class="code-block">Loading...</p>
+                </div>
+                <div class="debug-info-section">
+                    <h3>Logs Bluetooth</h3>
+                    <div id="bleLogConsole" class="log-console">
+                        <!-- Logs will appear here -->
+                    </div>
+                    <button id="clearBleLogsBtn" class="btn-cancel" style="margin-top: 10px;">Effacer les logs</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bluefy Reminder Modal -->
+        <div id="bluefyModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Utilisateurs iOS 🍎</h2>
+                    <span id="closeBluefyModal" class="close">&times;</span>
+                </div>
+                <p class="info-text">
+                    Safari sur iOS ne supporte pas encore le Bluetooth Web.
+                    Pour utiliser cette application sur iPhone/iPad, vous devez utiliser le navigateur gratuit
+                    <strong>Bluefy</strong>.
+                </p>
+                <a href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055" target="_blank"
+                    class="btn-primary" style="display: block; text-align: center; text-decoration: none; margin-bottom: 10px;">
+                    Télécharger Bluefy
+                </a>
+                <button id="continueAnywayBtn" class="btn-cancel">Continuer quand même</button>
             </div>
         </div>
 
