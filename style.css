@@ -415,6 +415,10 @@ h1 {
     overflow-y: auto;
 }
 
+.modal-large {
+    max-width: 800px;
+}
+
 .modal-header {
     display: flex;
     justify-content: space-between;
@@ -826,6 +830,54 @@ h1 {
     background: #ff2e63;
     border-color: #ff2e63;
     font-weight: bold;
+}
+
+/* BLE Debug Console */
+.log-console {
+    background: #000;
+    color: #00ff9d;
+    font-family: monospace;
+    padding: 10px;
+    border-radius: 5px;
+    height: 300px;
+    overflow-y: scroll;
+    font-size: 0.8rem;
+    border: 1px solid #333;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.code-block {
+    background: rgba(0,0,0,0.3);
+    padding: 10px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #ccc;
+    word-break: break-all;
+}
+
+.log-entry {
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 2px;
+}
+
+.log-time {
+    color: #888;
+    margin-right: 5px;
+}
+
+.log-error {
+    color: #ff2e63;
+}
+
+.log-success {
+    color: #00ff9d;
+}
+
+.log-info {
+    color: #aaa;
 }
 
 /* Footer */
