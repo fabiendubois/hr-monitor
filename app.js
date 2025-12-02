@@ -69,6 +69,10 @@ const powerTargetValue = document.getElementById('powerTargetValue');
 const powerZoneIndicator = document.getElementById('powerZoneIndicator');
 const userFtpInput = document.getElementById('userFtp');
 
+// Import Elements
+const importZwoInput = document.getElementById('importZwoInput');
+const importZwoBtn = document.getElementById('importZwoBtn');
+
 // Debug Elements
 const debugBtn = document.getElementById('debugBtn');
 const debugPanel = document.getElementById('debugPanel');
@@ -436,6 +440,10 @@ setPowerBtn.addEventListener('change', toggleErgMode);
 workoutsBtn.addEventListener('click', openWorkoutModal);
 closeWorkoutModal.addEventListener('click', () => workoutModal.classList.add('hidden'));
 userFtpInput.addEventListener('change', saveUserFtp);
+
+// Import Listeners
+importZwoBtn.addEventListener('click', () => importZwoInput.click());
+importZwoInput.addEventListener('change', handleZwoImport);
 
 // Initialize Settings UI
 if (stravaClientId) clientIdInput.value = stravaClientId;
@@ -1612,6 +1620,33 @@ function resetStats() {
 
 // --- WORKOUT FUNCTIONS ---
 
+function handleZwoImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const xmlContent = e.target.result;
+            const newWorkout = parseZWO(xmlContent);
+
+            // Add to workouts array
+            workouts.push(newWorkout);
+
+            // Refresh list
+            openWorkoutModal();
+
+            alert(`Workout "${newWorkout.name}" importé avec succès !`);
+        } catch (err) {
+            console.error(err);
+            alert("Erreur lors de l'import du fichier ZWO : " + err.message);
+        }
+    };
+    reader.readAsText(file);
+    // Reset input
+    event.target.value = '';
+}
+
 function saveUserFtp() {
     userFtp = parseInt(userFtpInput.value);
     localStorage.setItem('user_ftp', userFtp);
@@ -1627,21 +1662,9 @@ function openWorkoutModal() {
         // Calculate total duration
         const totalDurationMin = Math.floor(workout.steps.reduce((acc, s) => acc + s.duration, 0) / 60);
 
-        // Generate steps list
-        let stepsHtml = '<ul class="workout-steps-list">';
-        workout.steps.forEach(step => {
-            const duration = step.duration >= 60
-                ? `${Math.floor(step.duration / 60)} min`
-                : `${step.duration} sec`;
-            const targetWatts = Math.round(step.power * userFtp);
-            stepsHtml += `
-                <li>
-                    <span class="step-duration">${duration}</span>
-                    <span class="step-power">@ ${targetWatts}W</span>
-                    <span class="step-label">${step.label || step.type}</span>
-                </li>`;
-        });
-        stepsHtml += '</ul>';
+        // Generate steps list (Preview)
+        // We'll also add a small canvas for visual preview
+        const canvasId = `preview-${Math.random().toString(36).substr(2, 9)}`;
 
         div.innerHTML = `
             <div class="workout-header">
@@ -1649,10 +1672,20 @@ function openWorkoutModal() {
                 <span class="workout-duration">${totalDurationMin} min</span>
             </div>
             <p class="workout-description">${workout.description}</p>
-            ${stepsHtml}
+            <div style="height: 60px; width: 100%; margin-top: 10px;">
+                <canvas id="${canvasId}"></canvas>
+            </div>
         `;
-        div.addEventListener('click', () => selectWorkout(workout));
+        div.addEventListener('click', (e) => {
+            // Prevent clicking when interacting with internal elements if needed
+            selectWorkout(workout);
+        });
         workoutList.appendChild(div);
+
+        // Draw preview
+        setTimeout(() => {
+            drawWorkoutProfile(workout, -1, document.getElementById(canvasId));
+        }, 0);
     });
     workoutModal.classList.remove('hidden');
 }
@@ -1686,11 +1719,20 @@ function selectWorkout(workout) {
 }
 
 
-function drawWorkoutProfile(workout, activeIndex = -1) {
-    const canvas = document.getElementById('workoutProfileChart');
+function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
+    const canvas = canvasElement || document.getElementById('workoutProfileChart');
+    if (!canvas) return;
+
+    // Fix resolution for high DPI displays or just ensure internal size matches visual size
+    // For the preview in modal, we need to ensure dimensions are set
+    if (!canvas.width || !canvas.height || canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
+         canvas.width = canvas.offsetWidth;
+         canvas.height = canvas.offsetHeight;
+    }
+
     const ctx = canvas.getContext('2d');
-    const width = canvas.width = canvas.offsetWidth;
-    const height = canvas.height = canvas.offsetHeight;
+    const width = canvas.width;
+    const height = canvas.height;
 
     // Clear
     ctx.clearRect(0, 0, width, height);
@@ -1698,22 +1740,78 @@ function drawWorkoutProfile(workout, activeIndex = -1) {
     const totalDuration = workout.steps.reduce((acc, s) => acc + s.duration, 0);
     let currentX = 0;
 
+    // Determine Max Power for scaling (usually 1.5 or 2.0 times FTP)
+    // Find max power in the workout to auto-scale, or default to 150% FTP = 1.0 height?
+    // Let's say top of graph is 150% FTP (1.5).
+    // If a step goes higher, we scale down.
+
+    let maxPowerInWorkout = 0;
+    workout.steps.forEach(s => {
+        const p1 = s.power || 0;
+        const p2 = s.powerEnd || p1;
+        maxPowerInWorkout = Math.max(maxPowerInWorkout, p1, p2);
+    });
+
+    const maxScale = Math.max(1.5, maxPowerInWorkout * 1.1); // at least 150%, or 10% more than max
+
     workout.steps.forEach((step, index) => {
-        const stepWidth = (step.duration / totalDuration) * width;
-        const stepHeight = Math.min(step.power * 0.8 * height, height); // Scale power to height
-        const y = height - stepHeight;
+        const stepDuration = step.duration;
+        const stepWidth = (stepDuration / totalDuration) * width;
+
+        // Power values
+        const powerStart = step.power;
+        const powerEnd = (step.powerEnd !== undefined) ? step.powerEnd : step.power;
+
+        const h1 = (powerStart / maxScale) * height;
+        const h2 = (powerEnd / maxScale) * height;
+
+        const y1 = height - h1;
+        const y2 = height - h2;
 
         // Color based on intensity or active state
+        // Use different colors for zones?
         if (index === activeIndex) {
-            ctx.fillStyle = '#ffaa00'; // Active
+            ctx.fillStyle = '#ffaa00'; // Active (Bright Orange)
         } else {
-            ctx.fillStyle = 'rgba(255, 170, 0, 0.3)'; // Inactive
+            // Zone coloring based on average power of the step?
+            const avgPower = (powerStart + powerEnd) / 2;
+            if (avgPower < 0.55) ctx.fillStyle = '#8b9bb4'; // Z1 (Grey)
+            else if (avgPower < 0.76) ctx.fillStyle = '#00f2ff'; // Z2 (Blue)
+            else if (avgPower < 0.91) ctx.fillStyle = '#00ff9d'; // Z3 (Green)
+            else if (avgPower < 1.06) ctx.fillStyle = '#ffaa00'; // Z4 (Orange)
+            else if (avgPower < 1.21) ctx.fillStyle = '#ff2e63'; // Z5 (Red)
+            else ctx.fillStyle = '#8b5cf6'; // Z6+ (Purple)
+
+            // Apply transparency for inactive parts
+             // But if we use zone colors, we might want them solid but dim?
+             // Or just use the zone colors as is?
+             // Let's stick to the requested "visualization des détails" which implies shapes are important.
+             // Let's make inactive slightly transparent
+             ctx.globalAlpha = 0.6;
         }
 
-        ctx.fillRect(currentX, y, stepWidth - 1, stepHeight); // -1 for gap
+        if (index === activeIndex) ctx.globalAlpha = 1.0;
+
+
+        // Draw shape (Trapezoid or Rectangle)
+        ctx.beginPath();
+        ctx.moveTo(currentX, height); // Bottom Left
+        ctx.lineTo(currentX, y1);     // Top Left
+        ctx.lineTo(currentX + stepWidth, y2); // Top Right
+        ctx.lineTo(currentX + stepWidth, height); // Bottom Right
+        ctx.closePath();
+        ctx.fill();
+
+        // Gap line (optional, simple 1px spacer)
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#1a1d24'; // Background color
+        ctx.stroke();
 
         currentX += stepWidth;
     });
+
+    // Reset global alpha
+    ctx.globalAlpha = 1.0;
 }
 
 function startInterval(index) {

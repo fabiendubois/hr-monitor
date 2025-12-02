@@ -70,8 +70,125 @@
     </TrainingCenterDatabase>`;
     }
 
+    function parseZWO(xmlContent) {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
+
+        const workoutNode = xmlDoc.querySelector("workout_file");
+        if (!workoutNode) {
+            throw new Error("Invalid ZWO file: missing workout_file tag");
+        }
+
+        const name = xmlDoc.querySelector("name")?.textContent || "Imported Workout";
+        const description = xmlDoc.querySelector("description")?.textContent || "Imported from ZWO";
+        const author = xmlDoc.querySelector("author")?.textContent || "";
+
+        const steps = [];
+        const workoutData = xmlDoc.querySelector("workout");
+
+        if (workoutData) {
+            for (const child of workoutData.children) {
+                const duration = parseInt(child.getAttribute("Duration")) || 0;
+
+                // Common attributes
+                const power = parseFloat(child.getAttribute("Power")) || 0;
+                const powerLow = parseFloat(child.getAttribute("PowerLow"));
+                const powerHigh = parseFloat(child.getAttribute("PowerHigh"));
+                const cadence = parseInt(child.getAttribute("Cadence")) || null;
+
+                switch (child.tagName) {
+                    case "SteadyState":
+                        steps.push({
+                            type: "steady",
+                            duration: duration,
+                            power: power,
+                            label: "Steady State",
+                            cadence: cadence
+                        });
+                        break;
+
+                    case "Warmup":
+                        steps.push({
+                            type: "warmup",
+                            duration: duration,
+                            power: powerLow !== null && !isNaN(powerLow) ? powerLow : 0.25,
+                            powerEnd: powerHigh !== null && !isNaN(powerHigh) ? powerHigh : 0.75, // Store end power for ramps
+                            label: "Warmup",
+                            cadence: cadence
+                        });
+                        break;
+
+                    case "CoolDown":
+                        steps.push({
+                            type: "cooldown",
+                            duration: duration,
+                            power: powerLow !== null && !isNaN(powerLow) ? powerLow : 0.75,
+                            powerEnd: powerHigh !== null && !isNaN(powerHigh) ? powerHigh : 0.25,
+                            label: "Cool Down",
+                            cadence: cadence
+                        });
+                        break;
+
+                    case "Ramp":
+                        steps.push({
+                            type: "ramp",
+                            duration: duration,
+                            power: powerLow !== null && !isNaN(powerLow) ? powerLow : 0.25,
+                            powerEnd: powerHigh !== null && !isNaN(powerHigh) ? powerHigh : 0.75,
+                            label: "Ramp",
+                            cadence: cadence
+                        });
+                        break;
+
+                    case "FreeRide":
+                         steps.push({
+                            type: "freeride",
+                            duration: duration,
+                            power: 0, // 0 usually means "free" or flat
+                            label: "Free Ride",
+                            cadence: cadence
+                        });
+                        break;
+
+                    case "IntervalsT":
+                        const repeat = parseInt(child.getAttribute("Repeat")) || 1;
+                        const onDuration = parseInt(child.getAttribute("OnDuration")) || 0;
+                        const offDuration = parseInt(child.getAttribute("OffDuration")) || 0;
+                        const onPower = parseFloat(child.getAttribute("OnPower")) || 0;
+                        const offPower = parseFloat(child.getAttribute("OffPower")) || 0;
+
+                        for (let i = 0; i < repeat; i++) {
+                            steps.push({
+                                type: "interval",
+                                duration: onDuration,
+                                power: onPower,
+                                label: `Interval ${i+1}/${repeat}`,
+                                cadence: cadence // Usually cadence is for the ON part
+                            });
+                            steps.push({
+                                type: "recovery",
+                                duration: offDuration,
+                                power: offPower,
+                                label: `Recovery ${i+1}/${repeat}`
+                            });
+                        }
+                        break;
+                }
+            }
+        }
+
+        return {
+            id: "zwo_" + Date.now(),
+            name: name,
+            description: description,
+            author: author,
+            steps: steps
+        };
+    }
+
     exports.calculatePowerZone = calculatePowerZone;
     exports.formatTime = formatTime;
     exports.generateTCX = generateTCX;
+    exports.parseZWO = parseZWO;
 
 })(typeof exports === 'undefined' ? window : exports);
