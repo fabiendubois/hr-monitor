@@ -920,6 +920,12 @@ footer {
     width: 100%;
 }
 
+.profile-chart-container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 /* Target Indicators */
 .target-indicator {
     text-align: center;
