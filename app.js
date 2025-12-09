@@ -1231,74 +1231,57 @@ function handleTrainerDataChanged(event) {
     // However, FTMS Indoor Bike Data (0x2AD2) has different flags.
     // We need to know which characteristic triggered this.
 
-    if (event.target.uuid.endsWith(INDOOR_BIKE_DATA_UUID.toString(16))) {
+    if (event.target.uuid.endsWith(INDOOR_BIKE_DATA_UUID.toString(16)) || event.target.uuid.includes('2ad2')) {
         // FTMS Parsing (0x2AD2)
         // Flags (2 bytes)
-        // Bit 0: More Data
-        // Bit 1: Average Speed present
-        // Bit 2: Instantaneous Cadence present
-        // Bit 3: Average Cadence present
-        // Bit 4: Total Distance present
-        // Bit 5: Resistance Level present
-        // Bit 6: Instantaneous Power present
-        // ...
+        const flags = value.getUint16(0, true);
+        let offset = 2;
 
-        const flagsFTMS = value.getUint16(0, true);
-        offset = 2;
+        // Bit 0: More Data (0 = Instantaneous Speed present)
+        if ((flags & 0x01) === 0) {
+            const speedKmh = value.getUint16(offset, true) * 0.01;
+            updateSpeedUI(Math.round(speedKmh));
+            offset += 2;
+        }
 
-        // Speed is usually first if not excluded, but let's check flags
-        // Actually FTMS structure is:
-        // Flags (2)
-        // Instantaneous Speed (2) - if Bit 0 (More Data) is 0? No, check specs.
-        // Wait, "More Data" is a distinct concept.
-        // Let's assume standard order based on flags.
-
-        // Bit 0: More Data (0 = Instantaneous Speed is present? No, this is tricky without full spec doc handy)
-        // Let's use a robust parser approach or simplify.
-
-        // SIMPLIFICATION: Most trainers send Speed (2), Power (2) and maybe Cadence.
-        // Let's try to detect based on common patterns or assume standard FTMS packet:
-        // Flags (2), Speed (2, uint16, 0.01km/h), Power (2, sint16), ...
-
-        // Let's try to parse Cycling Power Measurement (0x2A63) which is more standard for Power.
-        // Many trainers support both. We prioritize CPS in connection if available? 
-        // In connectTrainer we tried FTMS first.
-
-        // FTMS Indoor Bike Data (0x2AD2):
-        // C1 bit 0: More Data
-        // C1 bit 1: Avg Speed
-        // C1 bit 2: Inst Cadence
-        // ...
-        // This is getting complex to guess without spec.
-
-        // Let's stick to Cycling Power Service (0x1818) / Measurement (0x2A63) if possible as it's simpler for Power.
-        // Or implement a robust parser.
-
-        // Let's implement a basic parser that looks for Power.
-        // For FTMS (0x2AD2):
-        // If Bit 2 (Inst Cadence) -> +2 bytes (uint16, 0.5 rpm) ? No, usually 1 byte or 2.
-        // If Bit 6 (Inst Power) -> +2 bytes (sint16)
-
-        // Let's assume the user has a standard trainer.
-        // We will try to parse based on flags.
-
-        const speedPresent = !(flagsFTMS & 0x01); // "More Data" usually means split packet, but in simple FTMS it might mean "Instantaneous Speed present" is NOT the flag.
-        // Actually, let's look at the official bits for 0x2AD2:
-        // Bit 0: More Data
         // Bit 1: Average Speed Present
+        if (flags & 0x02) {
+            offset += 2;
+        }
+
         // Bit 2: Instantaneous Cadence Present
+        if (flags & 0x04) {
+            const cadence = value.getUint16(offset, true) * 0.5;
+            updateCadenceUI(Math.round(cadence));
+            offset += 2;
+        }
+
         // Bit 3: Average Cadence Present
+        if (flags & 0x08) {
+            offset += 2;
+        }
+
         // Bit 4: Total Distance Present
-        // ...
+        if (flags & 0x10) {
+            offset += 3;
+        }
+
+        // Bit 5: Resistance Level Present
+        if (flags & 0x20) {
+            offset += 2;
+        }
+
         // Bit 6: Instantaneous Power Present
+        if (flags & 0x40) {
+            const power = value.getInt16(offset, true);
+            updatePowerUI(power);
+            offset += 2;
+        }
+        
         // Bit 7: Average Power Present
-
-        // Mandatory fields: Instantaneous Speed (if Bit 0 is 0).
-        // Wait, "More Data" behavior is complex.
-
-        // ALTERNATIVE: Use Cycling Power Service (0x1818) which is strictly for Power/Cadence.
-        // Let's change connectTrainer to prefer CPS if available, or handle CPS parsing.
-
+        if (flags & 0x80) {
+            offset += 2;
+        }
     } else {
         // Cycling Power Measurement (0x2A63) Parsing
         // Flags (2 bytes)
