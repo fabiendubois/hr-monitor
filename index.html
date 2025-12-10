@@ -3,11 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HR Monitor Pro</title>
 
     <!-- PWA / iOS Capabilities -->
     <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HRPro">
@@ -279,7 +281,8 @@
 
                 <div class="import-section" style="margin-bottom: 15px; text-align: right;">
                     <input type="file" id="importZwoInput" accept=".zwo" style="display: none;">
-                    <button id="importZwoBtn" class="btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">📂 Importer .zwo</button>
+                    <button id="importZwoBtn" class="btn-primary" style="padding: 5px 10px; font-size: 0.8rem;">📂
+                        Importer .zwo</button>
                 </div>
 
                 <div id="workoutList" class="workout-list">
@@ -361,7 +364,13 @@
                     <div id="bleLogConsole" class="log-console">
                         <!-- Logs will appear here -->
                     </div>
-                    <button id="clearBleLogsBtn" class="btn-cancel" style="margin-top: 10px;">Effacer les logs</button>
+                    <div class="debug-actions"
+                        style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 8px; color: #8b9bb4; font-size: 0.9rem;">
+                            <input type="checkbox" id="showRawBleData"> Afficher les données brutes
+                        </label>
+                        <button id="clearBleLogsBtn" class="btn-cancel">Effacer les logs</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -379,7 +388,8 @@
                     <strong>Bluefy</strong>.
                 </p>
                 <a href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055" target="_blank"
-                    class="btn-primary" style="display: block; text-align: center; text-decoration: none; margin-bottom: 10px;">
+                    class="btn-primary"
+                    style="display: block; text-align: center; text-decoration: none; margin-bottom: 10px;">
                     Télécharger Bluefy
                 </a>
                 <button id="continueAnywayBtn" class="btn-cancel">Continuer quand même</button>
@@ -388,7 +398,9 @@
 
         <footer>
             <p>⚠️ Compatible avec Google Chrome (Desktop/Android), Edge, Opera. <br>
-                Sur iOS (iPhone/iPad), utilisez l'application <strong><a href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055" target="_blank" style="color: #ffaa00;">Bluefy</a></strong>.</p>
+                Sur iOS (iPhone/iPad), utilisez l'application <strong><a
+                        href="https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055" target="_blank"
+                        style="color: #ffaa00;">Bluefy</a></strong>.</p>
         </footer>
     </div>
     <script src="workouts.js"></script>

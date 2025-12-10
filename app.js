@@ -143,6 +143,7 @@ let demoSpeed = 25;
 // Debug State
 let timeMultiplier = 1;
 let bleLogs = [];
+let showRawBleData = false;
 
 // Trainer Control State
 let targetPower = 150;
@@ -479,6 +480,13 @@ clearBleLogsBtn.addEventListener('click', () => {
     bleLogs = [];
     renderBleLogs();
 });
+
+const showRawBleDataCheckbox = document.getElementById('showRawBleData');
+if (showRawBleDataCheckbox) {
+    showRawBleDataCheckbox.addEventListener('change', (e) => {
+        showRawBleData = e.target.checked;
+    });
+}
 
 // Bluefy Listeners
 closeBluefyModal.addEventListener('click', () => bluefyModal.classList.add('hidden'));
@@ -1034,6 +1042,10 @@ function handleHeartRateChanged(event) {
         heartRate = value.getUint8(1);
     }
 
+    if (showRawBleData) {
+        logBLE(`[DATA] HR: ${toHexString(value)}`, 'info');
+    }
+
     updateUI(heartRate);
 }
 
@@ -1210,6 +1222,10 @@ function handleTrainerDataChanged(event) {
     const value = event.target.value;
     const flags = value.getUint16(0, true);
 
+    if (showRawBleData) {
+        logBLE(`[DATA] Trainer: ${toHexString(value)}`, 'info');
+    }
+
     // Note: Parsing depends slightly on whether it's FTMS or CPS, 
     // but standard Cycling Power Measurement (0x2A63) is often used for both.
     // Below is a simplified parser for standard CPS/FTMS Indoor Bike Data
@@ -1277,7 +1293,7 @@ function handleTrainerDataChanged(event) {
             updatePowerUI(power);
             offset += 2;
         }
-        
+
         // Bit 7: Average Power Present
         if (flags & 0x80) {
             offset += 2;
@@ -1601,6 +1617,15 @@ function resetStats() {
     updateTimerDisplay(0);
 }
 
+function toHexString(dataView) {
+    let hex = '';
+    for (let i = 0; i < dataView.byteLength; i++) {
+        const byte = dataView.getUint8(i).toString(16).padStart(2, '0').toUpperCase();
+        hex += '0x' + byte + ' ';
+    }
+    return hex.trim();
+}
+
 // --- WORKOUT FUNCTIONS ---
 
 function handleZwoImport(event) {
@@ -1709,8 +1734,8 @@ function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
     // Fix resolution for high DPI displays or just ensure internal size matches visual size
     // For the preview in modal, we need to ensure dimensions are set
     if (!canvas.width || !canvas.height || canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
-         canvas.width = canvas.offsetWidth;
-         canvas.height = canvas.offsetHeight;
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
     }
 
     const ctx = canvas.getContext('2d');
@@ -1766,11 +1791,11 @@ function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
             else ctx.fillStyle = '#8b5cf6'; // Z6+ (Purple)
 
             // Apply transparency for inactive parts
-             // But if we use zone colors, we might want them solid but dim?
-             // Or just use the zone colors as is?
-             // Let's stick to the requested "visualization des détails" which implies shapes are important.
-             // Let's make inactive slightly transparent
-             ctx.globalAlpha = 0.6;
+            // But if we use zone colors, we might want them solid but dim?
+            // Or just use the zone colors as is?
+            // Let's stick to the requested "visualization des détails" which implies shapes are important.
+            // Let's make inactive slightly transparent
+            ctx.globalAlpha = 0.6;
         }
 
         if (index === activeIndex) ctx.globalAlpha = 1.0;
