@@ -1023,3 +1023,232 @@ footer {
 .btn-workout {
     background-color: #ffaa00;
 }
+/* --- Workout View (New) --- */
+
+.workout-view {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
+.workout-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(26, 29, 36, 0.5);
+    padding: 10px 20px;
+    border-radius: 12px;
+}
+
+.workout-main-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+@media (min-width: 1024px) {
+    .workout-main-grid {
+        flex-direction: row;
+        height: 300px; /* Fixed height for active card */
+    }
+}
+
+/* Active Interval Card */
+.active-interval-card {
+    flex: 2; /* Takes more space */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.5s ease;
+    min-height: 250px;
+}
+
+.active-interval-content {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 2;
+}
+
+.timer-section, .target-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.label-small {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.mono-timer {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.target-power-big {
+    font-family: 'Inter', sans-serif;
+    font-size: 4rem;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    line-height: 1;
+}
+
+.target-power-big .unit {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+}
+
+.interval-name-big {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    width: 100%;
+    text-align: center;
+    word-wrap: break-word;
+    padding: 0 10px;
+}
+
+/* Background Zones */
+.bg-zone-1 { background-color: #8b9bb4 !important; } /* Grey */
+.bg-zone-2 { background-color: #3b82f6 !important; } /* Blue */
+.bg-zone-3 { background-color: #10b981 !important; } /* Green */
+.bg-zone-4 { background-color: #f59e0b !important; } /* Yellow */
+.bg-zone-5 { background-color: #f97316 !important; } /* Orange */
+.bg-zone-6 { background-color: #ef4444 !important; } /* Red */
+.bg-zone-7 { background-color: #8b5cf6 !important; } /* Purple */
+
+/* Step List */
+.step-list-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #15181e; /* Slightly darker */
+    max-height: 300px;
+}
+
+.step-list-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.step-list {
+    flex: 1;
+    overflow-y: hidden; /* We will scroll programmatically or animate */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+}
+
+.step-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    transition: all 0.5s ease;
+}
+
+.step-item.active {
+    background: rgba(255,255,255,0.15);
+    border-left: 4px solid #fff;
+}
+
+.step-item.past {
+    opacity: 0.3;
+}
+
+.step-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.step-time {
+    font-family: 'Roboto Mono', monospace;
+    font-weight: bold;
+    color: #fff;
+}
+
+.step-watts {
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.step-name {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* Timeline SVG */
+.timeline-card {
+    padding: 10px 20px;
+    background: #15181e;
+}
+
+#workoutProfileSvg {
+    width: 100%;
+    height: 100px;
+    display: block;
+}
+
+/* Animations & Feedback */
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(255, 46, 99, 0.4); }
+    70% { box-shadow: 0 0 0 20px rgba(255, 46, 99, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 46, 99, 0); }
+}
+
+.pulse-warning {
+    animation: pulse-red 1s infinite;
+    border: 2px solid #ff2e63 !important;
+}
+
+.flash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: white;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.flash-active {
+    animation: flash-anim 0.2s ease-out;
+}
+
+@keyframes flash-anim {
+    0% { opacity: 0.3; }
+    100% { opacity: 0; }
+}
+
+.hud-progress-global {
+    margin-top: 5px;
+}
