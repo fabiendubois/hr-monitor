@@ -164,6 +164,8 @@ const INDOOR_BIKE_DATA_UUID = '00002ad2-0000-1000-8000-00805f9b34fb';
 const FITNESS_MACHINE_CONTROL_POINT_UUID = '00002ad9-0000-1000-8000-00805f9b34fb';
 const CYCLING_POWER_SERVICE_UUID = '00001818-0000-1000-8000-00805f9b34fb';
 const CYCLING_POWER_MEASUREMENT_UUID = '00002a63-0000-1000-8000-00805f9b34fb';
+const CSC_SERVICE_UUID = '00001816-0000-1000-8000-00805f9b34fb';
+const CSC_MEASUREMENT_UUID = '00002a5b-0000-1000-8000-00805f9b34fb';
 
 // Activity State
 let isRecording = false;
@@ -1065,8 +1067,10 @@ async function connectTrainer() {
         trainerDevice = await navigator.bluetooth.requestDevice({
             filters: [
                 { services: [FTMS_SERVICE_UUID] },
-                { services: [CYCLING_POWER_SERVICE_UUID] }
-            ]
+                { services: [CYCLING_POWER_SERVICE_UUID] },
+                { services: [CSC_SERVICE_UUID] }
+            ],
+            optionalServices: [CSC_SERVICE_UUID]
         });
 
         trainerDevice.addEventListener('gattserverdisconnected', onTrainerDisconnected);
@@ -1100,6 +1104,19 @@ async function connectTrainer() {
 
             updateTrainerConnectionStatus(true);
             logBLE('Trainer Connected Successfully!', 'success');
+        }
+
+        // Try CSC Service (Cycling Speed and Cadence) independently
+        // This is useful if the trainer uses a separate service for cadence
+        // or if the user has a sensor that is part of the same "device" bluetooth-wise
+        try {
+            const cscService = await trainerServer.getPrimaryService(CSC_SERVICE_UUID);
+            const cscChar = await cscService.getCharacteristic(CSC_MEASUREMENT_UUID);
+            await cscChar.startNotifications();
+            cscChar.addEventListener('characteristicvaluechanged', handleCSCMeasurement);
+            logBLE('Found CSC Service (Cadence)', 'success');
+        } catch (e) {
+            logBLE('CSC Service not found (Normal if using FTMS/Power)', 'info');
         }
 
     } catch (error) {
@@ -1337,6 +1354,36 @@ function handleTrainerDataChanged(event) {
     // Update UI
     if (instantaneousPower !== -1) {
         updatePowerUI(instantaneousPower);
+    }
+}
+
+function handleCSCMeasurement(event) {
+    const value = event.target.value;
+    const flags = value.getUint8(0);
+
+    if (showRawBleData) {
+        logBLE(`[DATA] CSC: ${toHexString(value)}`, 'info');
+    }
+
+    // CSC Measurement Flags
+    // Bit 0: Wheel Revolution Data Present
+    // Bit 1: Crank Revolution Data Present
+
+    let offset = 1;
+
+    // If Wheel Rev present (Bit 0)
+    if (flags & 0x01) {
+        // Wheel Rev (uint32) + Last Wheel Event Time (uint16)
+        // Total 6 bytes. We skip this as we prefer FTMS/Power for speed usually.
+        offset += 6;
+    }
+
+    // If Crank Rev present (Bit 1)
+    if (flags & 0x02) {
+        const crankRev = value.getUint16(offset, true);
+        const lastCrankEventTime = value.getUint16(offset + 2, true);
+
+        calculateCadence(crankRev, lastCrankEventTime);
     }
 }
 
