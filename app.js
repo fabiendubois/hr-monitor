@@ -1,9 +1,11 @@
 // DOM Elements
 const connectBtn = document.getElementById('connectBtn');
 const connectTrainerBtn = document.getElementById('connectTrainerBtn');
+const connectCadenceBtn = document.getElementById('connectCadenceBtn');
 const demoBtn = document.getElementById('demoBtn');
 const hrStatusDot = document.getElementById('hrStatusDot');
 const trainerStatusDot = document.getElementById('trainerStatusDot');
+const cadenceStatusDot = document.getElementById('cadenceStatusDot');
 const heartRateDisplay = document.getElementById('heartRate');
 const powerDisplay = document.getElementById('power');
 const cadenceDisplay = document.getElementById('cadence');
@@ -107,6 +109,10 @@ let trainerServer = null;
 let powerCharacteristic = null;
 let cadenceCharacteristic = null;
 let trainerControlCharacteristic = null;
+
+let cadenceDevice = null;
+let cadenceServer = null;
+let cscMeasurementCharacteristic = null;
 
 let hrHistory = [];
 let minHr = Infinity;
@@ -408,6 +414,7 @@ const HR_CHARACTERISTIC_UUID = 0x2a37;
 // Event Listeners
 connectBtn.addEventListener('click', toggleHRConnection);
 connectTrainerBtn.addEventListener('click', toggleTrainerConnection);
+connectCadenceBtn.addEventListener('click', toggleCadenceConnection);
 demoBtn.addEventListener('click', toggleDemoMode);
 
 // Activity Listeners
@@ -963,6 +970,76 @@ async function uploadToStrava() {
 }
 
 
+// --- CADENCE FUNCTIONS (Standalone) ---
+
+async function toggleCadenceConnection() {
+    if (cadenceDevice && cadenceDevice.gatt.connected) {
+        disconnectCadence();
+    } else {
+        connectCadence();
+    }
+}
+
+async function connectCadence() {
+    try {
+        logBLE('Requesting Cadence Sensor...');
+        cadenceDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [CSC_SERVICE_UUID] }]
+        });
+
+        cadenceDevice.addEventListener('gattserverdisconnected', onCadenceDisconnected);
+
+        logBLE('Connecting to Cadence GATT Server...');
+        cadenceServer = await cadenceDevice.gatt.connect();
+
+        logBLE('Getting CSC Service...');
+        const service = await cadenceServer.getPrimaryService(CSC_SERVICE_UUID);
+
+        logBLE('Getting CSC Measurement Characteristic...');
+        cscMeasurementCharacteristic = await service.getCharacteristic(CSC_MEASUREMENT_UUID);
+
+        logBLE('Starting Cadence Notifications...');
+        await cscMeasurementCharacteristic.startNotifications();
+        cscMeasurementCharacteristic.addEventListener('characteristicvaluechanged', handleCSCMeasurement);
+
+        updateCadenceConnectionStatus(true);
+        logBLE('Cadence Sensor Connected!', 'success');
+    } catch (error) {
+        logBLE('Error connecting Cadence: ' + error, 'error');
+        alert('Erreur de connexion Cadence : ' + error);
+    }
+}
+
+function disconnectCadence() {
+    if (cadenceDevice) {
+        if (cadenceDevice.gatt.connected) {
+            cadenceDevice.gatt.disconnect();
+            logBLE('Disconnecting Cadence Sensor...');
+        }
+    }
+}
+
+function onCadenceDisconnected(event) {
+    logBLE('Cadence Sensor disconnected.', 'warning');
+    updateCadenceConnectionStatus(false);
+}
+
+function updateCadenceConnectionStatus(connected) {
+    if (connected) {
+        cadenceStatusDot.classList.add('connected');
+        connectCadenceBtn.classList.add('connected-state');
+        connectCadenceBtn.innerHTML = '<span class="status-dot connected" id="cadenceStatusDot"></span><span class="icon">❌</span> CADENCE';
+    } else {
+        cadenceStatusDot.classList.remove('connected');
+        connectCadenceBtn.classList.remove('connected-state');
+        connectCadenceBtn.innerHTML = '<span class="status-dot" id="cadenceStatusDot"></span><span class="icon">🚲</span> CADENCE';
+        connectCadenceBtn.style.backgroundColor = '';
+        if (!trainerDevice) {
+            cadenceDisplay.textContent = '--';
+        }
+    }
+}
+
 // --- HEART RATE FUNCTIONS ---
 
 async function toggleHRConnection() {
@@ -1021,10 +1098,11 @@ function onHRDisconnected(event) {
 function updateHRConnectionStatus(connected) {
     if (connected) {
         hrStatusDot.classList.add('connected');
+        connectBtn.classList.add('connected-state');
         connectBtn.innerHTML = '<span class="status-dot connected" id="hrStatusDot"></span><span class="icon">❌</span> HR';
-        connectBtn.style.backgroundColor = '#ff2e63';
     } else {
         hrStatusDot.classList.remove('connected');
+        connectBtn.classList.remove('connected-state');
         connectBtn.innerHTML = '<span class="status-dot" id="hrStatusDot"></span><span class="icon">❤️</span> HR';
         connectBtn.style.backgroundColor = '';
         heartRateDisplay.textContent = '--';
@@ -1140,15 +1218,18 @@ function onTrainerDisconnected() {
 function updateTrainerConnectionStatus(connected) {
     if (connected) {
         trainerStatusDot.classList.add('connected');
+        connectTrainerBtn.classList.add('connected-state');
         connectTrainerBtn.innerHTML = '<span class="status-dot connected" id="trainerStatusDot"></span><span class="icon">❌</span> TRAINER';
-        connectTrainerBtn.style.backgroundColor = '#ff2e63';
     } else {
         trainerStatusDot.classList.remove('connected');
+        connectTrainerBtn.classList.remove('connected-state');
         connectTrainerBtn.innerHTML = '<span class="status-dot" id="trainerStatusDot"></span><span class="icon">🚴</span> TRAINER';
         connectTrainerBtn.style.backgroundColor = '';
         powerDisplay.textContent = '--';
         power3sDisplay.textContent = '--';
-        cadenceDisplay.textContent = '--';
+        if (!cadenceDevice) { // Only reset cadence if no independent sensor
+             cadenceDisplay.textContent = '--';
+        }
 
         // Hide Control Panel
         // trainerControlPanel.style.display = 'none'; // Always visible now
