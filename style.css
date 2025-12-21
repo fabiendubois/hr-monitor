@@ -72,6 +72,11 @@ h1 {
     color: #ffffff;
 }
 
+.btn-cadence {
+    background-color: #4b5563;
+    color: #ffffff;
+}
+
 .btn-demo {
     background-color: #9c27b0;
 }
@@ -122,6 +127,11 @@ h1 {
 .status-dot.connected {
     background-color: #00ff9d;
     box-shadow: 0 0 8px rgba(0, 255, 157, 0.6);
+}
+
+.btn-connect.connected-state {
+    background-color: var(--success-color) !important;
+    color: #0a0e17 !important;
 }
 
 /* Dashboard Layout - Mobile First */
