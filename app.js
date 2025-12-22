@@ -63,10 +63,14 @@ const workoutHud = document.getElementById('workoutHud');
 const workoutNameDisplay = document.getElementById('workoutName');
 const workoutTotalTimeDisplay = document.getElementById('workoutTotalTime');
 const workoutProgressBar = document.getElementById('workoutProgressBar');
+const activeIntervalCard = document.getElementById('activeIntervalCard');
 const intervalNameDisplay = document.getElementById('intervalName');
 const intervalTimeRemainingDisplay = document.getElementById('intervalTimeRemaining');
-const nextIntervalNameDisplay = document.getElementById('nextIntervalName');
-const powerTargetContainer = document.getElementById('powerTargetContainer');
+const intervalPowerTargetDisplay = document.getElementById('intervalPowerTarget');
+const stepListContainer = document.getElementById('stepList');
+const workoutProfileSvg = document.getElementById('workoutProfileSvg');
+const flashOverlay = document.getElementById('flashOverlay');
+const powerTargetContainer = document.getElementById('powerTargetContainer'); // Keep if needed for old UI fallback, but mainly inactive now
 const powerTargetValue = document.getElementById('powerTargetValue');
 const powerZoneIndicator = document.getElementById('powerZoneIndicator');
 const userFtpInput = document.getElementById('userFtp');
@@ -188,6 +192,37 @@ let stravaClientSecret = localStorage.getItem('strava_client_secret') || '';
 let stravaAccessToken = localStorage.getItem('strava_access_token') || '';
 let stravaRefreshToken = localStorage.getItem('strava_refresh_token') || '';
 let stravaTokenExpiresAt = localStorage.getItem('strava_expires_at') || 0;
+
+// Audio Context Setup
+let audioContext = null;
+
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function playBeep(frequency = 440, duration = 0.2, type = 'sine') {
+    if (!audioContext) initAudio();
+    if (audioContext.state === 'suspended') audioContext.resume();
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.start();
+
+    // Smooth fade out
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+    oscillator.stop(audioContext.currentTime + duration);
+}
 
 // Chart.js Setup
 const ctx = document.getElementById('hrChart').getContext('2d');
@@ -1839,11 +1874,16 @@ function selectWorkout(workout) {
     // Show HUD
     workoutHud.classList.remove('hidden');
     workoutNameDisplay.textContent = workout.name;
-    workoutNameDisplay.textContent = workout.name;
-    powerTargetContainer.classList.remove('hidden');
+    // powerTargetContainer.classList.remove('hidden'); // Removed in favor of new layout
 
-    // Draw Profile
-    drawWorkoutProfile(workout, 0);
+    // Render Steps
+    renderStepList(workout);
+
+    // Draw SVG Profile
+    drawWorkoutSVG(workout);
+
+    // Initialize Audio
+    initAudio();
 
     // Start Activity if not already started
     if (!isRecording) {
@@ -1854,13 +1894,119 @@ function selectWorkout(workout) {
     startInterval(0);
 }
 
+// Function to get color for power value (normalized 0.0 - 2.0+)
+function getZoneColor(powerRatio) {
+    if (powerRatio < 0.55) return '#8b9bb4'; // Z1 (Grey)
+    if (powerRatio < 0.76) return '#3b82f6'; // Z2 (Blue)
+    if (powerRatio < 0.91) return '#10b981'; // Z3 (Green)
+    if (powerRatio < 1.06) return '#f59e0b'; // Z4 (Yellow)
+    if (powerRatio < 1.21) return '#f97316'; // Z5 (Orange)
+    if (powerRatio < 1.51) return '#ef4444'; // Z6 (Red)
+    return '#8b5cf6'; // Z7 (Purple)
+}
 
+function drawWorkoutSVG(workout) {
+    // Determine scaling
+    const totalDuration = workout.steps.reduce((acc, s) => acc + s.duration, 0);
+    let maxPowerInWorkout = 0;
+    workout.steps.forEach(s => {
+        const p1 = s.power || 0;
+        const p2 = s.powerEnd || p1;
+        maxPowerInWorkout = Math.max(maxPowerInWorkout, p1, p2);
+    });
+    const maxScale = Math.max(1.5, maxPowerInWorkout * 1.1);
+
+    // SVG ViewBox logic
+    // We'll use coordinates 0..1000 for width, 0..100 for height (inverted Y)
+    const svgWidth = 1000;
+    const svgHeight = 100;
+
+    // Set viewBox on the SVG element
+    if (workoutProfileSvg) {
+        workoutProfileSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+        workoutProfileSvg.innerHTML = ''; // Clear existing
+    } else {
+        return;
+    }
+
+    let currentX = 0;
+
+    // 1. Draw Steps
+    workout.steps.forEach((step, index) => {
+        const stepDurationRatio = step.duration / totalDuration;
+        const stepWidth = stepDurationRatio * svgWidth;
+
+        const powerStart = step.power;
+        const powerEnd = (step.powerEnd !== undefined) ? step.powerEnd : step.power;
+
+        const h1 = (powerStart / maxScale) * svgHeight;
+        const h2 = (powerEnd / maxScale) * svgHeight;
+
+        const y1 = svgHeight - h1;
+        const y2 = svgHeight - h2;
+
+        const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+
+        // Points: BottomLeft, TopLeft, TopRight, BottomRight
+        const points = `
+            ${currentX},${svgHeight}
+            ${currentX},${y1}
+            ${currentX + stepWidth},${y2}
+            ${currentX + stepWidth},${svgHeight}
+        `;
+
+        polygon.setAttribute("points", points.trim());
+        polygon.setAttribute("fill", getZoneColor((powerStart + powerEnd) / 2));
+        polygon.setAttribute("stroke", "#15181e");
+        polygon.setAttribute("stroke-width", "1");
+
+        // Slightly dim inactive steps, they will be masked anyway but good base
+        polygon.style.opacity = "0.6";
+
+        workoutProfileSvg.appendChild(polygon);
+
+        currentX += stepWidth;
+    });
+
+    // 2. Add Progress Mask (Dark overlay that recedes)
+    // Actually, prompt asked for "Progress Mask: un calque semi-transparent qui recouvre les segments déjà effectués"
+    // OR "pour que l'utilisateur se concentre sur ce qu'il reste à faire".
+    // Usually, "Progress Mask" covers what is DONE.
+    // Let's create a semi-transparent black rect over the WHOLE thing,
+    // and we will adjust its x/width to reveal/hide parts.
+
+    // Actually, typical UI highlights *upcoming*.
+    // Let's cover the *past* with a darker overlay.
+
+    const mask = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    mask.setAttribute("id", "progressMask");
+    mask.setAttribute("x", "0");
+    mask.setAttribute("y", "0");
+    mask.setAttribute("width", "0"); // Starts at 0 width
+    mask.setAttribute("height", svgHeight);
+    mask.setAttribute("fill", "#000"); // Black
+    mask.setAttribute("opacity", "0.7"); // Darken completed parts
+
+    workoutProfileSvg.appendChild(mask);
+
+    // Also add a cursor line
+    const cursor = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    cursor.setAttribute("id", "progressCursor");
+    cursor.setAttribute("x1", "0");
+    cursor.setAttribute("y1", "0");
+    cursor.setAttribute("x2", "0");
+    cursor.setAttribute("y2", svgHeight);
+    cursor.setAttribute("stroke", "#fff");
+    cursor.setAttribute("stroke-width", "2");
+
+    workoutProfileSvg.appendChild(cursor);
+}
+
+// Kept for modal preview support if needed, otherwise this can be refactored too
 function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
-    const canvas = canvasElement || document.getElementById('workoutProfileChart');
-    if (!canvas) return;
+    if (!canvasElement) return; // Only for preview canvases now
+    const canvas = canvasElement;
 
-    // Fix resolution for high DPI displays or just ensure internal size matches visual size
-    // For the preview in modal, we need to ensure dimensions are set
     if (!canvas.width || !canvas.height || canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
         canvas.width = canvas.offsetWidth;
         canvas.height = canvas.offsetHeight;
@@ -1869,85 +2015,58 @@ function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
-
-    // Clear
     ctx.clearRect(0, 0, width, height);
 
     const totalDuration = workout.steps.reduce((acc, s) => acc + s.duration, 0);
+    let maxPower = 0;
+    workout.steps.forEach(s => { maxPower = Math.max(maxPower, s.power, s.powerEnd || s.power); });
+    const maxScale = Math.max(1.5, maxPower * 1.1);
+
     let currentX = 0;
-
-    // Determine Max Power for scaling (usually 1.5 or 2.0 times FTP)
-    // Find max power in the workout to auto-scale, or default to 150% FTP = 1.0 height?
-    // Let's say top of graph is 150% FTP (1.5).
-    // If a step goes higher, we scale down.
-
-    let maxPowerInWorkout = 0;
-    workout.steps.forEach(s => {
-        const p1 = s.power || 0;
-        const p2 = s.powerEnd || p1;
-        maxPowerInWorkout = Math.max(maxPowerInWorkout, p1, p2);
-    });
-
-    const maxScale = Math.max(1.5, maxPowerInWorkout * 1.1); // at least 150%, or 10% more than max
-
     workout.steps.forEach((step, index) => {
-        const stepDuration = step.duration;
-        const stepWidth = (stepDuration / totalDuration) * width;
+        const w = (step.duration / totalDuration) * width;
+        const p1 = step.power;
+        const p2 = (step.powerEnd !== undefined) ? step.powerEnd : step.power;
 
-        // Power values
-        const powerStart = step.power;
-        const powerEnd = (step.powerEnd !== undefined) ? step.powerEnd : step.power;
+        const h1 = (p1 / maxScale) * height;
+        const h2 = (p2 / maxScale) * height;
 
-        const h1 = (powerStart / maxScale) * height;
-        const h2 = (powerEnd / maxScale) * height;
-
-        const y1 = height - h1;
-        const y2 = height - h2;
-
-        // Color based on intensity or active state
-        // Use different colors for zones?
-        if (index === activeIndex) {
-            ctx.fillStyle = '#ffaa00'; // Active (Bright Orange)
-        } else {
-            // Zone coloring based on average power of the step?
-            const avgPower = (powerStart + powerEnd) / 2;
-            if (avgPower < 0.55) ctx.fillStyle = '#8b9bb4'; // Z1 (Grey)
-            else if (avgPower < 0.76) ctx.fillStyle = '#00f2ff'; // Z2 (Blue)
-            else if (avgPower < 0.91) ctx.fillStyle = '#00ff9d'; // Z3 (Green)
-            else if (avgPower < 1.06) ctx.fillStyle = '#ffaa00'; // Z4 (Orange)
-            else if (avgPower < 1.21) ctx.fillStyle = '#ff2e63'; // Z5 (Red)
-            else ctx.fillStyle = '#8b5cf6'; // Z6+ (Purple)
-
-            // Apply transparency for inactive parts
-            // But if we use zone colors, we might want them solid but dim?
-            // Or just use the zone colors as is?
-            // Let's stick to the requested "visualization des détails" which implies shapes are important.
-            // Let's make inactive slightly transparent
-            ctx.globalAlpha = 0.6;
-        }
-
-        if (index === activeIndex) ctx.globalAlpha = 1.0;
-
-
-        // Draw shape (Trapezoid or Rectangle)
+        ctx.fillStyle = getZoneColor((p1 + p2)/2);
         ctx.beginPath();
-        ctx.moveTo(currentX, height); // Bottom Left
-        ctx.lineTo(currentX, y1);     // Top Left
-        ctx.lineTo(currentX + stepWidth, y2); // Top Right
-        ctx.lineTo(currentX + stepWidth, height); // Bottom Right
+        ctx.moveTo(currentX, height);
+        ctx.lineTo(currentX, height - h1);
+        ctx.lineTo(currentX + w, height - h2);
+        ctx.lineTo(currentX + w, height);
         ctx.closePath();
         ctx.fill();
 
-        // Gap line (optional, simple 1px spacer)
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = '#1a1d24'; // Background color
-        ctx.stroke();
-
-        currentX += stepWidth;
+        currentX += w;
     });
+}
 
-    // Reset global alpha
-    ctx.globalAlpha = 1.0;
+function renderStepList(workout) {
+    stepListContainer.innerHTML = '';
+
+    // We render upcoming steps (or all steps and scroll)
+    // Let's render all and use CSS classes to manage visibility
+    workout.steps.forEach((step, index) => {
+        const div = document.createElement('div');
+        div.className = 'step-item';
+        div.id = `step-item-${index}`;
+
+        const targetW = Math.round(step.power * userFtp);
+        const durationStr = formatTime(step.duration);
+
+        div.innerHTML = `
+            <div class="step-meta">
+                <span class="step-time">${durationStr}</span>
+                <span class="step-watts">${targetW}w</span>
+            </div>
+            <span class="step-name">${step.label || step.type}</span>
+        `;
+
+        stepListContainer.appendChild(div);
+    });
 }
 
 function startInterval(index) {
@@ -1960,36 +2079,55 @@ function startInterval(index) {
     const step = currentWorkout.steps[index];
     intervalTimeRemaining = step.duration;
 
-    // Update UI
+    // 1. Update Active Card UI
     intervalNameDisplay.textContent = step.label || step.type.toUpperCase();
-
-    // Next Interval Preview
-    if (index + 1 < currentWorkout.steps.length) {
-        const nextStep = currentWorkout.steps[index + 1];
-        nextIntervalNameDisplay.textContent = nextStep.label || nextStep.type.toUpperCase();
-    } else {
-        nextIntervalNameDisplay.textContent = 'FIN';
-    }
-
-    // Set Target Power (ERG)
     const targetW = Math.round(step.power * userFtp);
-    powerTargetValue.textContent = targetW;
+    intervalPowerTargetDisplay.textContent = targetW;
+
+    // Update Background Color based on Zone
+    activeIntervalCard.className = 'card active-interval-card'; // Reset
+    const zoneClass = getZoneClass(step.power); // Helper needed
+    activeIntervalCard.classList.add(zoneClass);
+
+    // 2. Update Step List
+    // Mark previous as past, current as active
+    const items = stepListContainer.querySelectorAll('.step-item');
+    items.forEach((item, idx) => {
+        item.classList.remove('active');
+        if (idx < index) item.classList.add('past');
+        if (idx === index) {
+            item.classList.add('active');
+            item.classList.remove('past');
+            // Scroll to it
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    // 3. Set Target Power (ERG)
+    if (powerTargetValue) powerTargetValue.textContent = targetW;
 
     // Auto-set ERG if Trainer Connected
     if (trainerDevice && trainerDevice.gatt.connected) {
-        // Ensure ERG is ON
-        if (!isErgMode) {
-            toggleErgMode();
-        }
+        if (!isErgMode) toggleErgMode(); // Ensure ERG ON
         setTargetPower(targetW);
     }
 
-    // Update Control Panel Target Display too
+    // Update Control Panel
     targetPower = targetW;
     targetPowerDisplay.textContent = targetPower;
 
-    // Redraw Profile with active step
-    drawWorkoutProfile(currentWorkout, index);
+    // Play transition sound (Long Beep)
+    playBeep(880, 0.6);
+}
+
+function getZoneClass(powerRatio) {
+    if (powerRatio < 0.55) return 'bg-zone-1';
+    if (powerRatio < 0.76) return 'bg-zone-2';
+    if (powerRatio < 0.91) return 'bg-zone-3';
+    if (powerRatio < 1.06) return 'bg-zone-4';
+    if (powerRatio < 1.21) return 'bg-zone-5';
+    if (powerRatio < 1.51) return 'bg-zone-6';
+    return 'bg-zone-7';
 }
 
 function updateWorkoutLogic() {
@@ -2005,18 +2143,77 @@ function updateWorkoutLogic() {
     const durationSecs = (workoutTotalDuration % 60).toString().padStart(2, '0');
     workoutTotalTimeDisplay.textContent = `${totalMins}:${totalSecs} / ${durationMins}:${durationSecs}`;
 
-    // Update Interval Timer
+    // Update Interval Timer (MM:SS)
     const intMins = Math.floor(intervalTimeRemaining / 60).toString().padStart(2, '0');
     const intSecs = (intervalTimeRemaining % 60).toString().padStart(2, '0');
     intervalTimeRemainingDisplay.textContent = `${intMins}:${intSecs}`;
 
-    // Update Progress Bar
-    const progress = (workoutElapsedTime / workoutTotalDuration) * 100;
-    workoutProgressBar.style.width = `${progress}%`;
+    // Update Global Progress Bar (still used in bottom card)
+    if (workoutProgressBar) {
+        const progress = (workoutElapsedTime / workoutTotalDuration) * 100;
+        workoutProgressBar.style.width = `${progress}%`;
+    }
+
+    // Update SVG Mask & Cursor
+    if (workoutProfileSvg) {
+        const mask = document.getElementById('progressMask');
+        const cursor = document.getElementById('progressCursor');
+        if (mask && cursor) {
+            const progressRatio = workoutElapsedTime / workoutTotalDuration;
+            // SVG width is 1000
+            const currentX = progressRatio * 1000;
+            mask.setAttribute('width', currentX);
+            cursor.setAttribute('x1', currentX);
+            cursor.setAttribute('x2', currentX);
+        }
+    }
+
+    // --- Active Interval Logic ---
+
+    // 1. Deviation Check (Pulse)
+    // Get current power
+    const currentPower = parseInt(powerDisplay.textContent) || 0;
+    const targetW = targetPower; // current target
+
+    if (targetW > 0 && currentPower > 0) {
+        const diff = Math.abs(currentPower - targetW);
+        const percentDiff = diff / targetW;
+
+        if (percentDiff > 0.10) {
+             activeIntervalCard.classList.add('pulse-warning');
+        } else {
+             activeIntervalCard.classList.remove('pulse-warning');
+        }
+    }
+
+    // 2. Countdown Feedback (Last 3 seconds)
+    if (intervalTimeRemaining <= 3 && intervalTimeRemaining > 0) {
+        // Play Short Beep every second
+        // Check if we just crossed a second boundary logic or just fire?
+        // Since this runs every 1s (approx), we can just fire.
+        playBeep(440, 0.1);
+
+        // Visual Flash if Intensity is High (Zone 4+)
+        const step = currentWorkout.steps[currentIntervalIndex];
+        if (step.power >= 0.91) { // Zone 4 starts at 91%
+            triggerFlash();
+        }
+    }
 
     // Check Interval End
     if (intervalTimeRemaining <= 0) {
         startInterval(currentIntervalIndex + 1);
+    }
+}
+
+function triggerFlash() {
+    if (flashOverlay) {
+        flashOverlay.classList.remove('hidden');
+        flashOverlay.classList.add('flash-active');
+        setTimeout(() => {
+            flashOverlay.classList.remove('flash-active');
+            flashOverlay.classList.add('hidden');
+        }, 200);
     }
 }
 

@@ -24,9 +24,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
+    <!-- Visual Flash Overlay -->
+    <div id="flashOverlay" class="flash-overlay hidden"></div>
+
     <div class="container">
         <header>
             <div class="header-content">
@@ -61,31 +65,53 @@
 
             <div class="dashboard">
                 <!-- Workout HUD (Hidden by default) -->
-                <div id="workoutHud" class="card workout-hud hidden">
-                    <div class="hud-header">
+                <div id="workoutHud" class="workout-view hidden">
+
+                    <div class="workout-header-row">
                         <h2 id="workoutName">Nom de l'entraînement</h2>
                         <span id="workoutTotalTime">00:00 / 00:00</span>
                     </div>
-                    <div class="hud-progress">
-                        <div class="progress-bar">
-                            <div id="workoutProgressBar" class="progress-fill" style="width: 0%"></div>
+
+                    <div class="workout-main-grid">
+                        <!-- Active Interval (Big Card) -->
+                        <div id="activeIntervalCard" class="card active-interval-card">
+                            <div class="active-interval-content">
+                                <div class="timer-section">
+                                    <span class="label-small">TEMPS RESTANT</span>
+                                    <div id="intervalTimeRemaining" class="mono-timer">00:00</div>
+                                </div>
+                                <div class="target-section">
+                                    <span class="label-small">CIBLE</span>
+                                    <div class="target-power-big">
+                                        <span id="intervalPowerTarget">--</span> <span class="unit">W</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="intervalName" class="interval-name-big">--</div>
+                            <!-- Progress Bar for specific interval (optional, or global) -->
+                        </div>
+
+                        <!-- Step List (Upcoming) -->
+                        <div id="stepListContainer" class="card step-list-card">
+                            <h3 class="step-list-title">À SUIVRE</h3>
+                            <div id="stepList" class="step-list">
+                                <!-- Steps injected via JS -->
+                            </div>
                         </div>
                     </div>
-                    <div class="hud-interval">
-                        <div class="interval-info">
-                            <span class="interval-label">INTERVALLE</span>
-                            <span id="intervalName" class="interval-name">--</span>
+
+                    <!-- Global Timeline -->
+                    <div class="card timeline-card">
+                        <div class="profile-chart-container">
+                            <!-- SVG replaced Canvas -->
+                            <svg id="workoutProfileSvg" preserveAspectRatio="none"></svg>
+                            <!-- Progress Mask Overlay handled inside SVG or separate div -->
                         </div>
-                        <div class="interval-timer">
-                            <span id="intervalTimeRemaining">00:00</span>
+                        <div class="hud-progress-global">
+                            <div class="progress-bar">
+                                <div id="workoutProgressBar" class="progress-fill" style="width: 0%"></div>
+                            </div>
                         </div>
-                        <div class="interval-next">
-                            <span class="next-label">SUIVANT:</span>
-                            <span id="nextIntervalName">--</span>
-                        </div>
-                    </div>
-                    <div class="profile-chart-container">
-                        <canvas id="workoutProfileChart"></canvas>
                     </div>
                 </div>
 
