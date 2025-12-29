@@ -1299,21 +1299,31 @@ async function requestTrainerControl() {
 }
 
 async function toggleErgMode() {
+    // If called from UI click, checkbox state is already changed
+    const desiredState = setPowerBtn.checked;
+    await setErgMode(desiredState);
+}
+
+async function setErgMode(enable) {
     if (!trainerControlCharacteristic && !isDemoMode) {
         setPowerBtn.checked = false;
         return;
     }
 
-    if (setPowerBtn.checked) {
+    isErgMode = enable;
+    setPowerBtn.checked = enable;
+
+    if (isErgMode) {
         // Turn ON ERG
-        isErgMode = true;
+        // Ensure control is requested if we lost it?
+        // await requestTrainerControl(); // Usually done at connection
+        logBLE(`ERG Mode Enabled. Target: ${targetPower}W`);
         await setTargetPower(targetPower);
     } else {
-        // Turn OFF ERG (Reset to simulation or resistance mode - here just stopping ERG)
-        // Note: There isn't a simple "Stop ERG" opcode in standard FTMS without switching to another mode.
-        // We will just update UI for now, or send a "Reset" opcode 0x01 if supported.
-        // For simplicity/safety, we'll just flag it off in UI.
-        isErgMode = false;
+        // Turn OFF ERG
+        // Ideally we should switch back to Simulation Mode (OpCode 0x11) or Resistance Mode
+        // But for now we just stop sending power updates
+        logBLE('ERG Mode Disabled.');
     }
 }
 
@@ -2106,14 +2116,20 @@ function startInterval(index) {
     // 3. Set Target Power (ERG)
     if (powerTargetValue) powerTargetValue.textContent = targetW;
 
+    // Update Control Panel Target first
+    targetPower = targetW;
+    targetPowerDisplay.textContent = targetPower;
+
     // Auto-set ERG if Trainer Connected
     if (trainerDevice && trainerDevice.gatt.connected) {
-        if (!isErgMode) toggleErgMode(); // Ensure ERG ON
-        setTargetPower(targetW);
+        // Force Enable ERG Mode for Workouts
+        if (!isErgMode) {
+             await setErgMode(true);
+        } else {
+             // Just update power if already on
+             await setTargetPower(targetW);
+        }
     }
-
-    // Update Control Panel
-    targetPower = targetW;
     targetPowerDisplay.textContent = targetPower;
 
     // Play transition sound (Long Beep)
