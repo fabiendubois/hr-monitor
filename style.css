@@ -717,52 +717,88 @@ h1 {
 .workout-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-height: 400px;
+    gap: 15px;
+    max-height: 60vh;
     overflow-y: auto;
+    padding-right: 5px; /* Space for scrollbar */
+}
+
+/* Custom Scrollbar for workout list */
+.workout-list::-webkit-scrollbar {
+    width: 6px;
+}
+.workout-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+.workout-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
 }
 
 .workout-item {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
-    border-radius: 10px;
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 16px;
     cursor: pointer;
-    transition: background 0.2s;
-    border: 1px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .workout-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #ffaa00;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-color);
+    background-color: #232730;
 }
 
 .workout-item h3 {
-    color: #ffaa00;
+    color: #ffffff;
     margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .workout-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
 
 .workout-duration {
-    background: rgba(255, 170, 0, 0.2);
-    color: #ffaa00;
-    padding: 2px 8px;
-    border-radius: 10px;
+    background: rgba(0, 242, 255, 0.1);
+    color: var(--accent-color);
+    padding: 4px 10px;
+    border-radius: 50px;
     font-size: 0.8rem;
-    font-weight: bold;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.workout-duration::before {
+    content: '⏱';
+    font-size: 0.9em;
 }
 
 .workout-description {
     font-size: 0.9rem;
     color: var(--text-secondary);
-    margin-bottom: 10px;
-    font-style: italic;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+/* Preview Canvas Container */
+.workout-item canvas {
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 5px 0;
 }
 
 .workout-steps-list {
