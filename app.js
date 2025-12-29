@@ -2087,7 +2087,7 @@ function renderStepList(workout) {
     });
 }
 
-function startInterval(index) {
+async function startInterval(index) {
     if (index >= currentWorkout.steps.length) {
         stopWorkout();
         return;
