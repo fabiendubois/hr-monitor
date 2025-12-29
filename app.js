@@ -2014,15 +2014,23 @@ function drawWorkoutSVG(workout) {
 
 // Kept for modal preview support if needed, otherwise this can be refactored too
 function drawWorkoutProfile(workout, activeIndex = -1, canvasElement = null) {
-    if (!canvasElement) return; // Only for preview canvases now
+    if (!canvasElement || !canvasElement.getContext) return; // Only for preview canvases now
     const canvas = canvasElement;
 
     if (!canvas.width || !canvas.height || canvas.width !== canvas.offsetWidth || canvas.height !== canvas.offsetHeight) {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        // Check if offsetWidth is valid (visible), otherwise default to something or skip
+        if (canvas.offsetWidth === 0) {
+            canvas.width = 300; // Default fallback
+            canvas.height = 100;
+        } else {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
     }
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const width = canvas.width;
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
